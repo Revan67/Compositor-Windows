@@ -1,0 +1,13 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Compositor.App.Dialogs.ConfirmDialog"
+        Width="380" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+  <StackPanel Margin="16" Spacing="14">
+    <TextBlock x:Name="Message" TextWrapping="Wrap" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Content="Cancel" Click="Cancel" IsCancel="True" />
+      <Button x:Name="Confirm" Click="Accept" IsDefault="True" />
+    </StackPanel>
+  </StackPanel>
+</Window>

@@ -208,3 +208,11 @@ Carried forward:
 - HEIC/TIFF import through WIC (Skia has neither on Windows) — Phase 2, with the import UI.
 - Adjustment-layer and shape-layer fields on `ImageLayer`/manifest arrive with Phase 3 (manifest version bump).
 - `SKImage.FromPixels` wraps bitmap memory without owning it; fine for raster draws, to be revisited when tiles go through the GPU canvas in Phase 2.
+
+### Phase 2 — in progress (2026-09-19)
+First increment, runnable:
+- `Rendering/CanvasViewport` in Core (fit, anchored zoom, pan, resize keeping the centre point), with the reference viewport tests.
+- `Compositor.App`: `EditorViewModel` (session + viewport + cached composite + layer rows + commands), `EditorCanvas` (Skia lease; checkerboard, composite with mipmapped shrink / nearest enlarge, pixel grid from 8×, wheel pan, Ctrl+wheel zoom about the pointer, middle/Space drag pan, file drop imports at the drop point), `LayersPanel` (rows top-first with thumbnails, folder indent, clip arrow, mask badge, eye toggle, active highlight; blend mode and opacity for the active layer with a one-undo drag; context menu; bottom actions), `NewCanvasWindow`, rename prompt, discard-changes confirm, menus with Photoshop-style shortcuts (Ctrl+N/O/S/Shift+S, Z/Shift+Z/Y, Shift+N, J, G, [, ], +, -, 0, 1), status bar with zoom readout, command-line files (`.comp` opens; images make a canvas and import).
+- Verified on screen: two images imported, composited at fit zoom, rows and controls populated.
+
+Next in Phase 2: Move/Transform tool (handles, rotate, snapping, Transform Inspector), multi-select and drag-reorder in the layers panel, Crop, Canvas Size / Image Size sheets, JPEG export sheet with preview, project tabs, HEIC/TIFF via WIC. Rendering note: the composite is rebuilt whole on every document change (fine at 1080p, will need tile/region invalidation before the brush lands).

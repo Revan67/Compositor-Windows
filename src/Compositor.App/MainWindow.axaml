@@ -1,9 +1,86 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:canvas="using:Compositor.App.Canvas"
+        xmlns:panels="using:Compositor.App.Panels"
+        xmlns:vm="using:Compositor.App.ViewModels"
         x:Class="Compositor.App.MainWindow"
-        Title="Compositor"
-        Width="1180" Height="780"
+        x:Name="Root"
+        x:DataType="vm:EditorViewModel"
+        Title="{Binding Title}"
+        Width="1180" Height="780" MinWidth="720" MinHeight="480"
         Background="#1E1E1E">
-  <canvas:SkiaBitmapView x:Name="Canvas" />
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+N" Command="{Binding #Root.NewCanvasCommand}" />
+    <KeyBinding Gesture="Ctrl+O" Command="{Binding #Root.OpenCommand}" />
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding #Root.SaveCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding #Root.SaveAsCommand}" />
+    <KeyBinding Gesture="Ctrl+Z" Command="{Binding Undo}" />
+    <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding Redo}" />
+    <KeyBinding Gesture="Ctrl+Y" Command="{Binding Redo}" />
+    <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding AddLayer}" />
+    <KeyBinding Gesture="Ctrl+J" Command="{Binding DuplicateLayer}" />
+    <KeyBinding Gesture="Ctrl+G" Command="{Binding GroupLayers}" />
+    <KeyBinding Gesture="Ctrl+OemCloseBrackets" Command="{Binding MoveLayerUp}" />
+    <KeyBinding Gesture="Ctrl+OemOpenBrackets" Command="{Binding MoveLayerDown}" />
+    <KeyBinding Gesture="Ctrl+OemPlus" Command="{Binding ZoomIn}" />
+    <KeyBinding Gesture="Ctrl+OemMinus" Command="{Binding ZoomOut}" />
+    <KeyBinding Gesture="Ctrl+0" Command="{Binding FitToWindow}" />
+    <KeyBinding Gesture="Ctrl+1" Command="{Binding ActualSize}" />
+  </Window.KeyBindings>
+
+  <DockPanel>
+    <Menu DockPanel.Dock="Top" Background="#2D2D30">
+      <MenuItem Header="_File">
+        <MenuItem Header="New Canvas…" InputGesture="Ctrl+N" Command="{Binding #Root.NewCanvasCommand}" />
+        <MenuItem Header="Open Project…" InputGesture="Ctrl+O" Command="{Binding #Root.OpenCommand}" />
+        <Separator />
+        <MenuItem Header="Save" InputGesture="Ctrl+S" Command="{Binding #Root.SaveCommand}" IsEnabled="{Binding HasDocument}" />
+        <MenuItem Header="Save As…" InputGesture="Ctrl+Shift+S" Command="{Binding #Root.SaveAsCommand}" IsEnabled="{Binding HasDocument}" />
+        <Separator />
+        <MenuItem Header="Import Images…" Command="{Binding #Root.ImportCommand}" IsEnabled="{Binding HasDocument}" />
+        <MenuItem Header="Export PNG…" Command="{Binding #Root.ExportPngCommand}" IsEnabled="{Binding HasDocument}" />
+        <MenuItem Header="Export JPEG…" Command="{Binding #Root.ExportJpegCommand}" IsEnabled="{Binding HasDocument}" />
+        <Separator />
+        <MenuItem Header="E_xit" Command="{Binding #Root.ExitCommand}" />
+      </MenuItem>
+      <MenuItem Header="_Edit">
+        <MenuItem Header="{Binding UndoLabel}" InputGesture="Ctrl+Z" Command="{Binding Undo}" />
+        <MenuItem Header="{Binding RedoLabel}" InputGesture="Ctrl+Shift+Z" Command="{Binding Redo}" />
+      </MenuItem>
+      <MenuItem Header="_Layer">
+        <MenuItem Header="New Layer" InputGesture="Ctrl+Shift+N" Command="{Binding AddLayer}" />
+        <MenuItem Header="New Folder" Command="{Binding AddFolder}" />
+        <MenuItem Header="Duplicate Layer" InputGesture="Ctrl+J" Command="{Binding DuplicateLayer}" />
+        <MenuItem Header="Delete Layer" Command="{Binding DeleteLayer}" />
+        <Separator />
+        <MenuItem Header="Group Layers" InputGesture="Ctrl+G" Command="{Binding GroupLayers}" />
+        <MenuItem Header="Move Layer Up" InputGesture="Ctrl+OemCloseBrackets" Command="{Binding MoveLayerUp}" />
+        <MenuItem Header="Move Layer Down" InputGesture="Ctrl+OemOpenBrackets" Command="{Binding MoveLayerDown}" />
+        <Separator />
+        <MenuItem Header="Add Layer Mask" Command="{Binding AddMask}" />
+        <MenuItem Header="Enable / Disable Layer Mask" Command="{Binding ToggleMask}" />
+        <MenuItem Header="Delete Layer Mask" Command="{Binding DeleteMask}" />
+        <MenuItem Header="Create / Release Clipping Mask" Command="{Binding ToggleClipping}" />
+      </MenuItem>
+      <MenuItem Header="_View">
+        <MenuItem Header="Zoom In" InputGesture="Ctrl+OemPlus" Command="{Binding ZoomIn}" />
+        <MenuItem Header="Zoom Out" InputGesture="Ctrl+OemMinus" Command="{Binding ZoomOut}" />
+        <MenuItem Header="Fit to Window" InputGesture="Ctrl+0" Command="{Binding FitToWindow}" />
+        <MenuItem Header="Actual Pixels" InputGesture="Ctrl+1" Command="{Binding ActualSize}" />
+      </MenuItem>
+    </Menu>
+
+    <Border DockPanel.Dock="Bottom" Background="#2D2D30" Height="24">
+      <DockPanel Margin="10,0">
+        <TextBlock DockPanel.Dock="Right" Text="{Binding ZoomPercent}" Foreground="#9A9A9A" FontSize="12" VerticalAlignment="Center" />
+        <TextBlock x:Name="Status" Foreground="#9A9A9A" FontSize="12" VerticalAlignment="Center" />
+      </DockPanel>
+    </Border>
+
+    <Grid ColumnDefinitions="*,4,280">
+      <canvas:EditorCanvas x:Name="Canvas" Grid.Column="0" />
+      <GridSplitter Grid.Column="1" Background="#2D2D30" ResizeDirection="Columns" />
+      <panels:LayersPanel Grid.Column="2" />
+    </Grid>
+  </DockPanel>
 </Window>
