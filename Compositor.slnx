@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Compositor.Kernels/Compositor.Kernels.csproj" />
+    <Project Path="src/Compositor.Core/Compositor.Core.csproj" />
+    <Project Path="src/Compositor.App/Compositor.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Compositor.Kernels.Tests/Compositor.Kernels.Tests.csproj" />
+    <Project Path="tests/Compositor.Core.Tests/Compositor.Core.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,23 +1,37 @@
-# Build output
+# .NET build output
+bin/
+obj/
+TestResults/
+*.binlog
+
+# IDE and per-user state
+.vs/
+.idea/
+*.user
+*.suo
+launchSettings.json
+
+# Native kernel build output (rebuilt by scripts/build-kernels.ps1)
+src/Compositor.Kernels/bin/
+
+# Packaging output
 dist/
-build/
-DerivedData/
-*.xcarchive
-*.dmg
+*.zip
+*.exe
+!scripts/**/*.exe
 
-# Xcode per-user state
-xcuserdata/
-*.xcuserstate
+# Model downloads and local caches (Remove Background fetches its model at first use)
+models/
 
-# macOS
-.DS_Store
-
-# Signing material and secrets — never commit
+# Secrets and signing material — never commit
+*.pfx
 *.p12
-*.p8
-*.cer
-*.certSigningRequest
 .env
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
 
 # Claude Code settings personal to this machine
 .claude/settings.local.json

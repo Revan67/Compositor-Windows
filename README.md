@@ -1,78 +1,51 @@
-# Compositor
+# Compositor for Windows
 
-Adobe Photoshop costs too much and tools like GIMP don’t feel familiar enough for me to stay in flow. That’s why I built Compositor.
+A free, open-source layered image editor for Windows, built around a Photoshop-style compositing workflow: layers and folders, masks, clipping masks, blend modes, non-destructive transforms, selections, brushes, retouching tools, adjustments and filters.
 
-The goal was to create a full-featured image editor that is completely free and open source. I use Photoshop for compositing and post-processing, so Compositor is built around that workflow - with the tools needed to create a pixel-perfect final image.
+This is an independent Windows application derived from [Compositor](https://github.com/robbietilton/Compositor) by Robbie Tilton, a macOS app written in Swift. The Windows version is a C# rewrite on [Avalonia](https://avaloniaui.net) and [SkiaSharp](https://github.com/mono/SkiaSharp); it keeps the original's features and reuses its C pixel kernels unchanged, but has its own project format and does not track the Mac app.
 
-Because it’s open source, you can download the Xcode project and add, remove, or modify any feature to fit your workflow.
+## Status
 
-## Features
+Work in progress. The port is being built in phases; see [docs/windows-port-plan.md](docs/windows-port-plan.md) for the plan, decisions and what is done.
 
-### Layers
-- Layers and folders, with blend modes and opacity
-- Layer masks: paint, fill, invert, blur and feather them; link or unlink them to transform a mask on its own
-- Clipping masks and folder masks
-- Adjustment layers: Hue/Saturation, Levels, Curves, Exposure, Gradient Map and Grain
-- Merge Down, Merge Layers and Merge Group (⌘E)
-- Duplicate, rename inline, reorder and nest by drag and drop; Option-drag to duplicate
-- Drag layers between open projects
+| Phase | Scope | State |
+| --- | --- | --- |
+| 0 | Solution, native kernels, Avalonia window drawing through Skia | Done |
+| 1 | Document model, sparse raster tiles, compositor (masks, folders, clipping, blend modes), image codec, project file, undo history, editing session | Done — headless, 114 tests |
+| 2 | Shell UI: canvas, layers panel, menus, transform and crop tools, sheets | Next |
+| 3 | Selections, brush and retouching tools, adjustments, filters | |
+| 4 | Remove Background (ONNX), GPU brush if needed, updater via GitHub Releases, installer | |
 
-### Transform
-- Non-destructive move, scale, rotate and flip — images keep their full resolution however small you make them
-- Free distort (⌘-drag a handle), with Shift to lock to an axis
-- Transform several layers, or a whole folder, together
-- Snapping to canvas and layer edges and centers, with guides
-- Exact values for position, size, scale and angle, stepped with the arrow keys
-- Flip Layer and Flip Canvas, horizontal and vertical
-
-### Selections
-- Rectangle and Ellipse Marquee, Freehand and Polygonal Lasso, and Magic Wand
-- Add to and subtract from selections, move the outline, or move and duplicate the pixels inside
-- Load a layer's pixels or a mask as a selection
-- Content-Aware Fill, which can also extend an image past its edges
-
-### Painting and retouching
-- Brush with size, hardness and opacity, and Shift for straight lines
-- Spot Healing Brush (content-aware)
-- Clone Stamp, aligned or not, sampling one layer or all of them
-- Blur tool, on pixels or masks
-- Gradient tool and Shape tool (rectangles, rounded rectangles and ellipses)
-- Eyedropper and a full color picker
-
-### Adjustments and filters
-- Levels (with Auto), Curves, Hue/Saturation, Exposure, Gradient Map, Grain and Invert
-- Gaussian Blur and Motion Blur that spread past a layer's edges
-- Add Noise, Lens Correction and Remove Background
-- Live previews, limited to the selection when there is one
-
-### Canvas and files
-- Multiple projects in tabs
-- Crop with snapping, and Option for symmetric cropping
-- Canvas Size and Image Size
-- Sharp high-quality downsampling when zoomed out, and a pixel grid when zoomed in
-- Import JPEG, PNG, HEIC and TIFF — including dropped screenshots and images from other apps
-- Export JPEG with a live preview (⇧⌥⌘S); Copy Merged
-- Photoshop-style keyboard shortcuts throughout
-
-## Requirements
-
-- macOS 26
-- Xcode 26 (to build from source)
+Nothing is usable as an editor yet.
 
 ## Building
 
-Open `Compositor.xcodeproj` and run the **Compositor** scheme.
+Requirements:
 
-## Releasing
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- Visual Studio 2022 with the **C++ Clang tools for Windows** component — used only to compile the C pixel kernels (`scripts/build-kernels.ps1` finds it through `vswhere`; no CMake)
 
-`scripts/release.sh` builds a Release version, signs it with Developer ID, notarizes and staples it, and packages it into `dist/Compositor-<version>.dmg`.
+```
+dotnet build
+dotnet test
+src\Compositor.App\bin\Debug\net10.0\Compositor.App.exe
+```
 
-It needs, all kept outside this repository:
+## Layout
 
-- a **Developer ID Application** certificate in the login keychain
-- notarization credentials saved with `xcrun notarytool store-credentials "compositor-notary" …`
-- [`create-dmg`](https://github.com/create-dmg/create-dmg) (`brew install create-dmg`)
+```
+src/Compositor.Kernels   The original C pixel kernels, compiled to compositor_kernels.dll, plus P/Invoke bindings
+src/Compositor.Core      Document model, raster engine, compositor, codec, project file, history. No UI dependency.
+src/Compositor.App       Avalonia desktop app
+tests/                   xUnit tests; one class per reference test suite where one exists
+docs/                    Port plan and format notes
+Compositor/, CompositorTests/, Compositor.xcodeproj   The original Mac source, kept as the reference design while the port is in progress
+```
+
+## Project files
+
+`.comp` is a zip archive containing `manifest.json` and one PNG per layer (plus `.mask.png` for masks). The schema follows the original's layout but carries its own identifier (`com.compositor.windows.project`); files from the Mac app are not read. Saves are atomic: a sibling temp file is written, validated and swapped in.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). The original Compositor is © Wonder Assembly LLC; this port keeps that notice and adds its own changes under the same license.

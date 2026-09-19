@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Document model, raster engine, tools, adjustments and project I/O. Pure C# + SkiaSharp.
+    Must never reference Avalonia; a test enforces it so the model stays headless and the
+    tests stay fast.
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>Compositor.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="$(SkiaSharpVersion)" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Compositor.Kernels\Compositor.Kernels.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,19 @@
+LIBRARY compositor_kernels
+EXPORTS
+    adjust_gradient_map
+    adjust_grain
+    rgba_clamp_premultiplied
+    brush_alpha_bounds
+    layer_extract_alpha
+    layer_unpremultiply_opaque
+    layer_restore_alpha
+    content_fill
+    heal_coverage_bounds
+    spot_heal
+    lens_distort
+    levels_apply
+    levels_histogram
+    noise_add
+    wand_mask
+    wand_trace
+    kernels_free

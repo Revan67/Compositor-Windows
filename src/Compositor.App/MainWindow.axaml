@@ -1,0 +1,9 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:canvas="using:Compositor.App.Canvas"
+        x:Class="Compositor.App.MainWindow"
+        Title="Compositor"
+        Width="1180" Height="780"
+        Background="#1E1E1E">
+  <canvas:SkiaBitmapView x:Name="Canvas" />
+</Window>

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The eight reference C pixel kernels, unchanged, compiled to compositor_kernels.dll by
+    scripts/build-kernels.ps1 and exposed through P/Invoke. Everything that references
+    this project gets the DLL copied next to its output.
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>Compositor.Kernels</RootNamespace>
+    <KernelsArch Condition="'$(KernelsArch)' == ''">x64</KernelsArch>
+    <KernelsDll>$(MSBuildThisFileDirectory)bin\native\$(KernelsArch)\compositor_kernels.dll</KernelsDll>
+  </PropertyGroup>
+
+  <Target Name="BuildNativeKernels" BeforeTargets="BeforeBuild">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\scripts\build-kernels.ps1&quot; -Arch $(KernelsArch)" />
+  </Target>
+
+  <ItemGroup>
+    <None Include="$(KernelsDll)" Link="compositor_kernels.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <None Include="native\**" />
+  </ItemGroup>
+
+</Project>
