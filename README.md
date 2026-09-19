@@ -1,5 +1,14 @@
 # Compositor for Windows
 
+[![License: MIT](https://img.shields.io/github/license/Revan67/Compositor-Windows)](LICENSE)
+[![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/download)
+[![Avalonia 12](https://img.shields.io/badge/Avalonia-12-8B44AC)](https://avaloniaui.net)
+[![SkiaSharp](https://img.shields.io/badge/SkiaSharp-3.119-0D9488)](https://github.com/mono/SkiaSharp)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)](#building)
+[![Status: work in progress](https://img.shields.io/badge/status-work%20in%20progress-orange)](#status)
+[![Last commit](https://img.shields.io/github/last-commit/Revan67/Compositor-Windows)](https://github.com/Revan67/Compositor-Windows/commits/main)
+[![Derived from Compositor](https://img.shields.io/badge/derived%20from-robbietilton%2FCompositor-lightgrey)](https://github.com/robbietilton/Compositor)
+
 A free, open-source layered image editor for Windows, built around a Photoshop-style compositing workflow: layers and folders, masks, clipping masks, blend modes, non-destructive transforms, selections, brushes, retouching tools, adjustments and filters.
 
 This is an independent Windows application derived from [Compositor](https://github.com/robbietilton/Compositor) by Robbie Tilton, a macOS app written in Swift. The Windows version is a C# rewrite on [Avalonia](https://avaloniaui.net) and [SkiaSharp](https://github.com/mono/SkiaSharp); it keeps the original's features and reuses its C pixel kernels unchanged, but has its own project format and does not track the Mac app.
