@@ -22,6 +22,7 @@ public sealed class EditorViewModel : ObservableObject
     private string? _path;
     private LayerRowViewModel? _selectedRow;
     private bool _syncingSelection;
+    private EditorTool _tool = EditorTool.Move;
 
     public EditorViewModel()
     {
@@ -47,6 +48,10 @@ public sealed class EditorViewModel : ObservableObject
 
     public EditorSession Session { get; } = new();
 
+    public TransformInspectorViewModel Inspector => _inspector ??= new TransformInspectorViewModel(Session);
+
+    private TransformInspectorViewModel? _inspector;
+
     public ObservableCollection<LayerRowViewModel> Rows { get; } = [];
 
     public IReadOnlyList<LayerBlendMode> BlendModes { get; } = Enum.GetValues<LayerBlendMode>();
@@ -69,6 +74,36 @@ public sealed class EditorViewModel : ObservableObject
     public RelayCommand ActualSize { get; }
     public RelayCommand FitToWindow { get; }
 
+    public EditorTool Tool
+    {
+        get => _tool;
+        set
+        {
+            if (_tool != value)
+            {
+                Session.CommitTransform();
+                Set(ref _tool, value);
+                Raise(nameof(ShowsTransformControls));
+            }
+        }
+    }
+
+    /// <summary>The transform box and handles for the active layer (or the selection's box), in view coordinates.</summary>
+    public TransformOverlayGeometry? OverlayGeometry
+    {
+        get
+        {
+            if (Tool != EditorTool.Move || Session.Document is not { } document || !Session.CanTransform || Session.ActiveLayer is not { } layer)
+            {
+                return null;
+            }
+
+            return new TransformOverlayGeometry(Session.EditedTransform(layer), Viewport, document.Size);
+        }
+    }
+
+    public bool ShowsTransformControls => Tool == EditorTool.Move && Session.CanTransform;
+
     public CanvasViewport Viewport
     {
         get => _viewport;
@@ -77,6 +112,7 @@ public sealed class EditorViewModel : ObservableObject
             if (Set(ref _viewport, value))
             {
                 Raise(nameof(ZoomPercent));
+                Raise(nameof(OverlayGeometry));
             }
         }
     }
@@ -144,7 +180,7 @@ public sealed class EditorViewModel : ObservableObject
     {
         get
         {
-            if (Session.Document is not { } document)
+            if (Session.DisplayedDocument is not { } document)
             {
                 return null;
             }
@@ -263,6 +299,9 @@ public sealed class EditorViewModel : ObservableObject
         Raise(nameof(ActiveBlendMode));
         Raise(nameof(CanEditAppearance));
         Raise(nameof(ZoomPercent));
+        Raise(nameof(OverlayGeometry));
+        Raise(nameof(ShowsTransformControls));
+        Inspector.Refresh();
     }
 
     private void RebuildRows()

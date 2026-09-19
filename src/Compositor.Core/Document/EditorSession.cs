@@ -10,7 +10,7 @@ namespace Compositor.Core.Document;
 /// tool state, busy flags and view state live with the UI, which reports them through
 /// <see cref="IsBusy"/> so edits stay refused while a modal operation runs.
 /// </summary>
-public sealed class EditorSession
+public sealed partial class EditorSession
 {
     private readonly HashSet<Guid> _collapsedGroupIds = [];
     private Guid? _opacityEditLayerId;

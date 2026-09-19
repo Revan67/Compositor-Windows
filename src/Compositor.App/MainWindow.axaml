@@ -77,6 +77,8 @@
       </DockPanel>
     </Border>
 
+    <panels:ToolHeader DockPanel.Dock="Top" />
+    <panels:ToolRail DockPanel.Dock="Left" />
     <Grid ColumnDefinitions="*,4,280">
       <canvas:EditorCanvas x:Name="Canvas" Grid.Column="0" />
       <GridSplitter Grid.Column="1" Background="#2D2D30" ResizeDirection="Columns" />

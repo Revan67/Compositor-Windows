@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Compositor.App.ViewModels"
+             x:Class="Compositor.App.Panels.ToolHeader"
+             x:DataType="vm:EditorViewModel">
+  <UserControl.Styles>
+    <Style Selector="NumericUpDown">
+      <Setter Property="Width" Value="92" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="ShowButtonSpinner" Value="False" />
+    </Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="Foreground" Value="#9A9A9A" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="10,0,4,0" />
+    </Style>
+  </UserControl.Styles>
+  <Border Background="#2D2D30" Height="36" IsVisible="{Binding ShowsTransformControls}">
+    <StackPanel Orientation="Horizontal" Margin="8,0" DataContext="{Binding Inspector}" x:DataType="vm:TransformInspectorViewModel" IsEnabled="{Binding IsEnabled}">
+      <TextBlock Classes="label" Text="X" />
+      <NumericUpDown Value="{Binding X}" FormatString="0.##" />
+      <TextBlock Classes="label" Text="Y" />
+      <NumericUpDown Value="{Binding Y}" FormatString="0.##" />
+      <TextBlock Classes="label" Text="W" />
+      <NumericUpDown Value="{Binding Width}" Minimum="1" FormatString="0.##" />
+      <TextBlock Classes="label" Text="H" />
+      <NumericUpDown Value="{Binding Height}" Minimum="1" FormatString="0.##" />
+      <TextBlock Classes="label" Text="Scale %" />
+      <NumericUpDown Value="{Binding ScalePercent}" Minimum="0.01" FormatString="0.#" IsEnabled="{Binding CanScale}" />
+      <TextBlock Classes="label" Text="Angle" />
+      <NumericUpDown Value="{Binding Rotation}" FormatString="0.##" />
+      <CheckBox Content="Flip H" IsChecked="{Binding FlipX}" Margin="12,0,0,0" FontSize="12" />
+      <CheckBox Content="Flip V" IsChecked="{Binding FlipY}" Margin="8,0,0,0" FontSize="12" />
+      <TextBlock Classes="label" Text="Sampling" />
+      <ComboBox ItemsSource="{Binding Samplings}" SelectedItem="{Binding Sampling}" FontSize="12" Width="110" />
+    </StackPanel>
+  </Border>
+</UserControl>
