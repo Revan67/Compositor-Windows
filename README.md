@@ -25,7 +25,7 @@ Work in progress. The port is being built in phases; see [docs/windows-port-plan
 | 3 | Selections, brush and retouching tools, adjustments, filters | |
 | 4 | Remove Background (ONNX), GPU brush if needed, updater via GitHub Releases, installer | |
 
-The Phase 2 shell can create, open, save, import and export documents; navigate the canvas; manage layers; and transform or crop content. Painting and selection tools are not implemented yet. The current solution has 138 automated tests.
+The Phase 2 shell can create, open, save, import and export documents; navigate the canvas; manage layers; and transform or crop content. Painting and selection tools are not implemented yet. The current solution has 144 automated tests.
 
 ## Building
 
@@ -39,6 +39,14 @@ dotnet build
 dotnet test
 src\Compositor.App\bin\Debug\net10.0\Compositor.App.exe
 ```
+
+To restore, build and test a clean x64 checkout in one command:
+
+```powershell
+.\scripts\verify.ps1
+```
+
+Add `-Publish` to also create a self-contained folder and ZIP under `dist/`. To publish a specific architecture directly, run `scripts\publish-windows.ps1 -Arch x64` or `-Arch arm64`. The publish smoke test verifies the executable, native DLL and required kernel exports; an arm64 native DLL must be load-tested on an arm64 host.
 
 ## Layout
 

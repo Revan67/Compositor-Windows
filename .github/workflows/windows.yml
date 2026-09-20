@@ -1,0 +1,47 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Compositor.slnx
+
+      - name: Build
+        run: dotnet build Compositor.slnx --configuration Release --no-restore -p:KernelsArch=${{ matrix.arch }}
+
+      - name: Test
+        if: matrix.arch == 'x64'
+        run: dotnet test Compositor.slnx --configuration Release --no-build --no-restore
+
+      - name: Publish
+        shell: pwsh
+        run: ./scripts/publish-windows.ps1 -Arch ${{ matrix.arch }} -Configuration Release -SkipSmokeTest
+
+      - name: Smoke-test x64 publish
+        if: matrix.arch == 'x64'
+        shell: pwsh
+        run: ./scripts/test-publish.ps1 -PublishDirectory ./dist/win-x64 -ExpectedArch x64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Compositor-win-${{ matrix.arch }}
+          path: dist/Compositor-win-${{ matrix.arch }}.zip
+          if-no-files-found: error

@@ -21,7 +21,24 @@ if (-not $vs) { throw "No Visual Studio with the 'C++ Clang tools for Windows' c
 $clang = Join-Path $vs "VC\Tools\Llvm\x64\bin\clang.exe"
 if (-not (Test-Path $clang)) { throw "clang.exe not found under $vs" }
 
+$vcVersionFile = Join-Path $vs "VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"
+if (-not (Test-Path $vcVersionFile)) { throw "MSVC toolset version file not found under $vs" }
+$vcVersion = (Get-Content -LiteralPath $vcVersionFile -Raw).Trim()
+$msvcLib = Join-Path $vs "VC\Tools\MSVC\$vcVersion\lib\$Arch"
+
+$kitsRoot = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\Lib"
+$sdkVersion = Get-ChildItem -LiteralPath $kitsRoot -Directory |
+    Where-Object { Test-Path (Join-Path $_.FullName "um\$Arch") } |
+    Sort-Object { [version]$_.Name } -Descending |
+    Select-Object -First 1
+if (-not $sdkVersion) { throw "Windows SDK $Arch libraries not found under $kitsRoot" }
+$sdkUmLib = Join-Path $sdkVersion.FullName "um\$Arch"
+$sdkUcrtLib = Join-Path $sdkVersion.FullName "ucrt\$Arch"
+
 $sources = Get-ChildItem (Join-Path $native "*.c") | ForEach-Object { $_.FullName }
+if ($Arch -eq "arm64" -and -not (Test-Path $msvcLib)) {
+    $sources += Join-Path $root "scripts\native-support\arm64-ucrt.c"
+}
 $def = Join-Path $native "compositor_kernels.def"
 
 # Skip when the DLL is newer than every input.
@@ -37,7 +54,19 @@ $opt = if ($Configuration -eq "Debug") { @("-O0", "-g") } else { @("-O2") }
 
 # The pixel kernels are hot loops and must stay optimized even in Debug app builds; the
 # Configuration switch here is for debugging the C itself.
-$args = @("--target=$target", "-shared", "-std=c11", "-D_USE_MATH_DEFINES", "-D_CRT_SECURE_NO_WARNINGS", "-Wall", "-Wno-unused-function", "-fuse-ld=lld") + $opt +
+$runtimeArgs = if (Test-Path $msvcLib) {
+    @("-L$msvcLib")
+}
+elseif ($Arch -eq "arm64") {
+    # The standalone ARM64 build tools are optional in Visual Studio. These kernels use only
+    # the stable UCRT surface, so link its Windows SDK import library when libcmt is unavailable.
+    @("-nostdlib", "-Wl,/ENTRY:DllMain", "-Wl,/defaultlib:ucrt.lib", "-Wl,/defaultlib:kernel32.lib")
+}
+else {
+    throw "MSVC $Arch libraries not found: $msvcLib"
+}
+
+$args = @("--target=$target", "-shared", "-std=c11", "-D_USE_MATH_DEFINES", "-D_CRT_SECURE_NO_WARNINGS", "-Wall", "-Wno-unused-function", "-fuse-ld=lld", "-L$sdkUmLib", "-L$sdkUcrtLib") + $runtimeArgs + $opt +
         @("-o", $dll, "-Wl,/DEF:$def") + $sources
 Write-Host "clang $($args -join ' ')"
 & $clang @args
