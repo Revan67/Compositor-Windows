@@ -260,6 +260,40 @@ public sealed class ProjectStoreTests : IDisposable
     }
 
     [Fact]
+    public void SaveValidatesCompletedArchiveBeforeReplacingDestination()
+    {
+        var path = PathFor("validated.comp");
+        var first = new CanvasDocument(4, 4, [new ImageLayer(Asset(Solid(4, 4, SKColors.Red), "Red"), Point.Zero)]);
+        ProjectStore.Save(ProjectSnapshot.From(first), path);
+        var original = File.ReadAllBytes(path);
+
+        var second = new CanvasDocument(4, 4, [new ImageLayer(Asset(Solid(4, 4, SKColors.Blue), "Blue"), Point.Zero)]);
+        var error = Assert.Throws<ProjectException>(() => ProjectStore.Save(ProjectSnapshot.From(second), path, temp => File.WriteAllText(temp, "damaged after write")));
+
+        Assert.Equal(ProjectError.Invalid, error.Error);
+        Assert.Equal(original, File.ReadAllBytes(path));
+        Assert.Empty(Directory.GetFiles(_dir, "*.tmp"));
+    }
+
+    [Fact]
+    public void FailedReplacementPreservesDestinationAndCleansTemporaryFile()
+    {
+        var path = PathFor("locked.comp");
+        var first = new CanvasDocument(4, 4, [new ImageLayer(Asset(Solid(4, 4, SKColors.Red), "Red"), Point.Zero)]);
+        ProjectStore.Save(ProjectSnapshot.From(first), path);
+        var original = File.ReadAllBytes(path);
+
+        using (File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            var second = new CanvasDocument(4, 4, [new ImageLayer(Asset(Solid(4, 4, SKColors.Blue), "Blue"), Point.Zero)]);
+            Assert.Throws<IOException>(() => ProjectStore.Save(ProjectSnapshot.From(second), path));
+        }
+
+        Assert.Equal(original, File.ReadAllBytes(path));
+        Assert.Empty(Directory.GetFiles(_dir, "*.tmp"));
+    }
+
+    [Fact]
     public void SnapshotBackedLayersSaveTheirLazyPixels()
     {
         var raster = RasterSnapshot.Replacing(null, new Rect(0, 0, 4, 4), [new RasterPatch(new Rect(1, 1, 2, 2), Solid(2, 2, SKColors.Lime))], new Rect(0, 0, 4, 4));

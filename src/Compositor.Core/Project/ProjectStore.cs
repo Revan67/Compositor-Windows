@@ -173,6 +173,13 @@ public static class ProjectStore
     public static string MaskFileName(Guid id) => $"{id:D}.mask.png";
 
     public static void Save(ProjectSnapshot snapshot, string path)
+        => Save(snapshot, path, afterWrite: null);
+
+    /// <summary>
+    /// Test seam used to damage or lock the completed temporary archive before validation. Production
+    /// callers always use <see cref="Save(ProjectSnapshot, string)"/>.
+    /// </summary>
+    internal static void Save(ProjectSnapshot snapshot, string path, Action<string>? afterWrite)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         Validate(snapshot.Manifest);
@@ -211,7 +218,19 @@ public static class ProjectStore
                 }
             }
 
-            File.Move(temp, path, overwrite: true);
+            afterWrite?.Invoke(temp);
+            ValidateWrittenArchive(temp);
+
+            // File.Replace is an atomic same-volume replacement on Windows. A new destination has
+            // nothing to replace, so the first save is an atomic rename of the sibling temp file.
+            if (File.Exists(path))
+            {
+                File.Replace(temp, path, destinationBackupFileName: null);
+            }
+            else
+            {
+                File.Move(temp, path);
+            }
         }
         finally
         {
@@ -219,6 +238,16 @@ public static class ProjectStore
             {
                 File.Delete(temp);
             }
+        }
+    }
+
+    private static void ValidateWrittenArchive(string path)
+    {
+        var written = Load(path);
+        foreach (var asset in written.Images.Values.Concat(written.Masks.Values))
+        {
+            asset.Image.Dispose();
+            asset.Thumbnail.Dispose();
         }
     }
 
