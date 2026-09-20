@@ -37,9 +37,7 @@ public sealed class EditorCanvas : Control
     private EditorViewModel? _vm;
     private Point? _panStart;
     private bool _spaceHeld;
-    private TransformDrag? _drag;
-    private HashSet<Guid> _dragExcludes = [];
-    private CropDrag? _cropDrag;
+    private readonly CanvasEditInteraction _edit = new();
 
     public EditorCanvas()
     {
@@ -250,7 +248,7 @@ public sealed class EditorCanvas : Control
             var docStart = _vm.Viewport.DocumentPoint(view, document.Size);
             CropDragMode cropMode = cropGeometry.Hit(view) is TransformDragMode.Resize r ? new CropDragMode.Resize(r.Handle)
                 : cropGeometry.Contains(view) ? new CropDragMode.Move() : new CropDragMode.Create();
-            _cropDrag = new CropDrag(docStart, frame, cropMode);
+            _edit.BeginCrop(new CropDrag(docStart, frame, cropMode));
             e.Pointer.Capture(this);
             e.Handled = true;
             return;
@@ -299,8 +297,7 @@ public sealed class EditorCanvas : Control
             return;
         }
 
-        _dragExcludes = edit.Group?.Originals.Keys.ToHashSet() ?? [edit.LayerId];
-        _drag = new TransformDrag(edit.Draft, docPoint, mode);
+        _edit.BeginTransform(new TransformDrag(edit.Draft, docPoint, mode), edit.Group?.Originals.Keys ?? [edit.LayerId]);
         e.Pointer.Capture(this);
         e.Handled = true;
     }
@@ -328,7 +325,7 @@ public sealed class EditorCanvas : Control
         }
 
         var view = e.GetPosition(this).ToCore();
-        if (_cropDrag is { } cropDrag)
+        if (_edit.Crop is { } cropDrag)
         {
             var docPoint = _vm.Viewport.DocumentPoint(view, document.Size);
             var symmetric = e.KeyModifiers.HasFlag(KeyModifiers.Alt);
@@ -341,7 +338,7 @@ public sealed class EditorCanvas : Control
             return;
         }
 
-        if (_drag is { } drag)
+        if (_edit.Transform is { } drag)
         {
             var docPoint = _vm.Viewport.DocumentPoint(view, document.Size);
             var shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
@@ -352,7 +349,7 @@ public sealed class EditorCanvas : Control
             {
                 var corners = EditorSession.Corners(updated);
                 var box = CoreRect.FromEdges(corners.Min(c => c.X), corners.Min(c => c.Y), corners.Max(c => c.X), corners.Max(c => c.Y));
-                var (xs, ys) = _vm.Session.SnapTargets(_dragExcludes);
+                var (xs, ys) = _vm.Session.SnapTargets(_edit.TransformExcludes);
                 var tolerance = TransformSnap.Distance / _vm.Viewport.PointsPerPixel;
                 var (offset, x, y) = TransformSnap.Offset(box, xs, ys, tolerance);
                 updated = updated with { Origin = updated.Origin.Offset(offset.Width, offset.Height) };
@@ -402,20 +399,31 @@ public sealed class EditorCanvas : Control
             return;
         }
 
-        if (_drag is not null)
+        if (_edit.Kind == CanvasEditKind.Transform)
         {
-            _drag = null;
+            _edit.Complete();
             e.Pointer.Capture(null);
             _vm?.Session.CommitTransform();
             e.Handled = true;
         }
 
-        if (_cropDrag is not null)
+        if (_edit.Kind == CanvasEditKind.Crop)
         {
-            _cropDrag = null;
+            _edit.Complete();
             e.Pointer.Capture(null);
             e.Handled = true;
         }
+    }
+
+    protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
+    {
+        base.OnPointerCaptureLost(e);
+        if (_edit.Cancel() == CanvasEditKind.Transform)
+        {
+            _vm?.Session.CancelTransform();
+        }
+
+        _panStart = null;
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -438,16 +446,16 @@ public sealed class EditorCanvas : Control
         var plain = e.KeyModifiers == KeyModifiers.None;
         switch (e.Key)
         {
-            case Key.Escape when _drag is not null:
-                _drag = null;
+            case Key.Escape when _edit.Kind == CanvasEditKind.Transform:
+                _edit.Cancel();
                 _vm.Session.CancelTransform();
                 break;
             case Key.Escape when _vm.Tool == EditorTool.Crop:
-                _cropDrag = null;
+                _edit.Cancel();
                 _vm.CancelCrop();
                 break;
             case Key.Enter when _vm.Tool == EditorTool.Crop:
-                _cropDrag = null;
+                _edit.Complete();
                 _vm.CommitCrop();
                 break;
             case Key.C when plain:
