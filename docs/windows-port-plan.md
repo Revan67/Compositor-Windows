@@ -1,6 +1,6 @@
 # Compositor — Windows port plan
 
-_Drafted 2026-09-19 from Compositor 1.0.4 (`a19db90`). Living document; update as decisions land._
+_Drafted 2026-09-19 from Compositor 1.0.4 (`a19db90`). Living document; update as decisions land. Upstream through 1.1.4 (`611894a`) was reviewed on 2026-09-20 as reference material only; this project remains an independent rewrite._
 
 ## Goal
 
@@ -131,17 +131,24 @@ No Mac is available and none is needed; nothing in this plan depends on running 
 - Crop with snapping and Alt-symmetric.
 - Exit: open, view, arrange, transform, crop, save. Everything in the README's "Layers", "Transform", "Canvas and files" sections except painting.
 
+#### Phase 2 follow-up — reference parity and developer preview
+- Add **Soft Light** to the Core blend-mode model, renderer, project serialization and numeric rendering tests. This small upstream 1.1.2 addition belongs with the existing compositor rather than waiting for the other Phase 3 tools.
+- Produce unsigned self-contained x64 and arm64 ZIPs through `scripts/publish-windows.ps1`; verify PE architecture on both and native loading/exports on the host architecture.
+- Developer-preview exit: a clean Release build and test run, successful project save/reopen, manual smoke tests for create/import/layers/transform/crop/export, and no known project-file corruption path. This is an internal alpha gate, not the feature-complete public release.
+
 ### Phase 3 — Tools and adjustments (large)
-- Selections: Marquee (rect/ellipse), Lasso (free/polygon), Magic Wand (C `wand_mask`/`wand_trace`), add/subtract, move outline, move/duplicate pixels, load layer/mask as selection, marching ants overlay, edge autoscroll, Shift constrain.
+- Selections: Marquee (rect/ellipse), Lasso (free/polygon), Magic Wand (C `wand_mask`/`wand_trace`), add/subtract, move outline, move/duplicate pixels, load layer/mask as selection, marching ants overlay, edge autoscroll, Shift constrain. Include Expand, Contract and **Feather**; feather is selection coverage state preserved by move/invert and applied by every operation that clips to the selection.
 - Brush (software coverage path from `BrushStroke.swift`), Eraser mode, Shift straight lines, right-drag size/hardness, brush cursor overlay.
-- Spot Healing (C `spot_heal`), Clone Stamp (aligned/unaligned, current/all layers, sample ring overlay), Smear (Liquify/Blur/Smudge), Burn/Dodge, Gradient, Shape (live shape layers), Eyedropper.
+- Spot Healing (C `spot_heal`), Clone Stamp (aligned/unaligned, current/all layers, sample ring overlay), Smear (Liquify/Blur/Smudge), Burn/Dodge, Gradient, Shape (live rectangle, ellipse and **line** layers), Eyedropper. Lines persist normalized endpoints and width, redraw when resized and snap to 45-degree increments with Shift.
+- **Editable text layers**: point text and multiline paragraph boxes; content, font, pixel size, color, alignment, tracking and line spacing; transform, duplicate, clip, save/reopen and undo without rasterizing. Store a rendered PNG fallback beside validated text metadata. Destructive pixel edits deliberately rasterize and discard that metadata. Implement text layout with Windows/Avalonia/Skia facilities rather than porting AppKit's inline editor. Port the upstream `TypeToolTests` scenarios as the behavioral specification.
 - Content-Aware Fill (C `content_fill`) including canvas extension.
 - Adjustments and adjustment layers: Levels (+Auto, C), Curves, Hue/Saturation, Exposure, Gradient Map (C), Grain (C), Invert; live preview limited to selection.
 - Filters: Gaussian Blur and Motion Blur spreading past layer edges, Add Noise (C), Lens Correction (C), Flip layer/canvas.
 - Copy Merged, clipboard in/out, screenshot paste.
 - Exit: every README feature except Remove Background works; C# tests cover each upstream test suite.
 
-### Phase 4 — Platform polish and the two hard features (medium)
+### Phase 4 — Platform polish and advanced non-destructive features (large)
+- **Layer effects**: non-destructive Stroke, Drop Shadow, Color Overlay and Inner Shadow, including visibility, undo, duplication, transforms, masks, clipping, export and project persistence. Start with a correct bounded Skia/CPU renderer and shared preview cache; consider GPU acceleration only after profiling. Define and test the Windows schema independently because the upstream 1.1.4 documentation describes fewer effects than its implementation.
 - **Remove Background**: ONNX Runtime (CPU, DirectML optional) + RMBG-1.4 or ISNet-general. Model downloaded on first use into `%LOCALAPPDATA%\Compositor\models`. Same UX as the reference (menu item, undoable).
 - **GPU brush**: only if profiling the software path on a 4K canvas / 800 px tip shows it above the reference numbers in `docs/brush-performance.md` (2.6–3.1 ms median). ComputeSharp (D3D12) port of the Metal kernel; keep the software path as fallback.
 - **Updater via GitHub Releases.** On launch (and from Help → Check for Updates) call `GET https://api.github.com/repos/Revan67/Compositor-Windows/releases/latest`, compare the tag to the running version, and offer to download the release asset (installer or zip) and run/replace. Unauthenticated API is rate-limited to 60 req/h per IP, which is plenty for once-per-launch. Verify the asset with a SHA-256 listed in the release notes before running it. No appcast, no server.
