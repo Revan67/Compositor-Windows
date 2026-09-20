@@ -4,6 +4,7 @@ namespace Compositor.App.ViewModels;
 public enum EditorTool
 {
     Move,
+    Crop,
     Hand,
     Zoom,
 }

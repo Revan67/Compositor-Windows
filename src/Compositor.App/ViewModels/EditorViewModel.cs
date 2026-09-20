@@ -27,6 +27,9 @@ public sealed class EditorViewModel : ObservableObject
     public EditorViewModel()
     {
         Session.Changed += OnSessionChanged;
+        Session.DocumentResized += Fit;
+        CropCommit = new RelayCommand(CommitCrop, () => Tool == EditorTool.Crop);
+        CropCancel = new RelayCommand(CancelCrop, () => Tool == EditorTool.Crop);
         Undo = new RelayCommand(Session.Undo, () => Session.CanUndo);
         Redo = new RelayCommand(Session.Redo, () => Session.CanRedo);
         AddLayer = new RelayCommand(Session.AddBlankLayer, () => Session.CanEditLayers);
@@ -73,6 +76,8 @@ public sealed class EditorViewModel : ObservableObject
     public RelayCommand ZoomOut { get; }
     public RelayCommand ActualSize { get; }
     public RelayCommand FitToWindow { get; }
+    public RelayCommand CropCommit { get; }
+    public RelayCommand CropCancel { get; }
 
     public EditorTool Tool
     {
@@ -82,8 +87,15 @@ public sealed class EditorViewModel : ObservableObject
             if (_tool != value)
             {
                 Session.CommitTransform();
+                if (_tool == EditorTool.Crop)
+                {
+                    Session.CancelCrop();
+                }
+
                 Set(ref _tool, value);
                 Raise(nameof(ShowsTransformControls));
+                Raise(nameof(ShowsCropControls));
+                Raise(nameof(OverlayGeometry));
             }
         }
     }
@@ -103,6 +115,27 @@ public sealed class EditorViewModel : ObservableObject
     }
 
     public bool ShowsTransformControls => Tool == EditorTool.Move && Session.CanTransform;
+
+    public bool ShowsCropControls => Tool == EditorTool.Crop && HasDocument;
+
+    public IReadOnlyList<string> CropRatioChoices => EditorSession.CropRatioChoices;
+
+    public string CropRatioChoice
+    {
+        get => Session.CropRatioChoice;
+        set => Session.SetCropRatioChoice(value);
+    }
+
+    /// <summary>The crop frame while the Crop tool is active: what was dragged, else the whole canvas.</summary>
+    public Compositor.Core.Geometry.Rect? CropFrame => Tool == EditorTool.Crop && Session.Document is { } d ? Session.CropRect ?? d.Bounds : null;
+
+    public void CommitCrop()
+    {
+        Session.CommitCrop();
+        Tool = EditorTool.Move;
+    }
+
+    public void CancelCrop() => Tool = EditorTool.Move;
 
     public CanvasViewport Viewport
     {
@@ -284,7 +317,7 @@ public sealed class EditorViewModel : ObservableObject
     private void OnSessionChanged()
     {
         RebuildRows();
-        foreach (var command in new[] { Undo, Redo, AddLayer, AddFolder, DuplicateLayer, DeleteLayer, MoveLayerUp, MoveLayerDown, GroupLayers, AddMask, ToggleMask, DeleteMask, ToggleClipping, ZoomIn, ZoomOut, ActualSize, FitToWindow })
+        foreach (var command in new[] { Undo, Redo, AddLayer, AddFolder, DuplicateLayer, DeleteLayer, MoveLayerUp, MoveLayerDown, GroupLayers, AddMask, ToggleMask, DeleteMask, ToggleClipping, ZoomIn, ZoomOut, ActualSize, FitToWindow, CropCommit, CropCancel })
         {
             command.Refresh();
         }
@@ -301,6 +334,9 @@ public sealed class EditorViewModel : ObservableObject
         Raise(nameof(ZoomPercent));
         Raise(nameof(OverlayGeometry));
         Raise(nameof(ShowsTransformControls));
+        Raise(nameof(ShowsCropControls));
+        Raise(nameof(CropRatioChoice));
+        Raise(nameof(CropFrame));
         Inspector.Refresh();
     }
 

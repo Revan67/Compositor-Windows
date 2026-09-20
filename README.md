@@ -20,12 +20,12 @@ Work in progress. The port is being built in phases; see [docs/windows-port-plan
 | Phase | Scope | State |
 | --- | --- | --- |
 | 0 | Solution, native kernels, Avalonia window drawing through Skia | Done |
-| 1 | Document model, sparse raster tiles, compositor (masks, folders, clipping, blend modes), image codec, project file, undo history, editing session | Done — headless, 114 tests |
-| 2 | Shell UI: canvas, layers panel, menus, transform and crop tools, sheets | Next |
+| 1 | Document model, sparse raster tiles, compositor (masks, folders, clipping, blend modes), image codec, project file, undo history, editing session | Done — headless |
+| 2 | Shell UI: canvas, layers panel, menus, transform and crop tools, sheets | In progress |
 | 3 | Selections, brush and retouching tools, adjustments, filters | |
 | 4 | Remove Background (ONNX), GPU brush if needed, updater via GitHub Releases, installer | |
 
-Nothing is usable as an editor yet.
+The Phase 2 shell can create, open, save, import and export documents; navigate the canvas; manage layers; and transform or crop content. Painting and selection tools are not implemented yet. The current solution has 138 automated tests.
 
 ## Building
 

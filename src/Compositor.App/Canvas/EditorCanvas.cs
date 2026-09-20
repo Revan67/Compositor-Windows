@@ -39,6 +39,7 @@ public sealed class EditorCanvas : Control
     private bool _spaceHeld;
     private TransformDrag? _drag;
     private HashSet<Guid> _dragExcludes = [];
+    private CropDrag? _cropDrag;
 
     public EditorCanvas()
     {
@@ -73,7 +74,7 @@ public sealed class EditorCanvas : Control
     private void OnViewModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(EditorViewModel.Composite) or nameof(EditorViewModel.Viewport) or nameof(EditorViewModel.HasDocument)
-            or nameof(EditorViewModel.OverlayGeometry) or nameof(EditorViewModel.Tool))
+            or nameof(EditorViewModel.OverlayGeometry) or nameof(EditorViewModel.Tool) or nameof(EditorViewModel.CropFrame))
         {
             InvalidateVisual();
         }
@@ -111,6 +112,41 @@ public sealed class EditorCanvas : Control
         var rect = _vm.Viewport.DocumentRect(document.Size);
         context.Custom(new DrawOperation(bounds, composite, new SKRect((float)rect.MinX, (float)rect.MinY, (float)rect.MaxX, (float)rect.MaxY), _vm.Viewport.Zoom));
         DrawOverlay(context, document.Size);
+        DrawCropFrame(context, document.Size);
+    }
+
+    private static readonly IBrush CropShade = new SolidColorBrush(Color.FromArgb(0x90, 0, 0, 0));
+
+    /// <summary>The crop frame: everything outside it dimmed, a thirds grid inside, handles on the edges.</summary>
+    private void DrawCropFrame(DrawingContext context, CoreSize documentSize)
+    {
+        if (_vm?.CropFrame is not { } frame)
+        {
+            return;
+        }
+
+        var geometry = new TransformOverlayGeometry(new LayerTransform(frame.Origin, frame.Size), _vm.Viewport, documentSize);
+        var tl = geometry.Handles[0];
+        var br = geometry.Handles[4];
+        var view = new Rect(new Point(tl.X, tl.Y), new Point(br.X, br.Y));
+        var full = new Rect(Bounds.Size);
+        context.FillRectangle(CropShade, new Rect(full.X, full.Y, full.Width, Math.Max(0, view.Top - full.Y)));
+        context.FillRectangle(CropShade, new Rect(full.X, view.Bottom, full.Width, Math.Max(0, full.Bottom - view.Bottom)));
+        context.FillRectangle(CropShade, new Rect(full.X, view.Top, Math.Max(0, view.Left - full.X), view.Height));
+        context.FillRectangle(CropShade, new Rect(view.Right, view.Top, Math.Max(0, full.Right - view.Right), view.Height));
+        context.DrawRectangle(null, BoxPen, view);
+        for (var i = 1; i < 3; i++)
+        {
+            var x = view.Left + (view.Width * i / 3);
+            var y = view.Top + (view.Height * i / 3);
+            context.DrawLine(GuidePen, new Point(x, view.Top), new Point(x, view.Bottom));
+            context.DrawLine(GuidePen, new Point(view.Left, y), new Point(view.Right, y));
+        }
+
+        foreach (var handle in geometry.Handles)
+        {
+            context.DrawRectangle(HandleFill, HandleStroke, new Rect(handle.X - 4, handle.Y - 4, 8, 8));
+        }
     }
 
     /// <summary>The transform box, its handles, the rotation handle and any snap guides, in view coordinates.</summary>
@@ -208,6 +244,18 @@ public sealed class EditorCanvas : Control
             return;
         }
 
+        if (_vm.Tool == EditorTool.Crop && _vm.CropFrame is { } frame)
+        {
+            var cropGeometry = new TransformOverlayGeometry(new LayerTransform(frame.Origin, frame.Size), _vm.Viewport, document.Size);
+            var docStart = _vm.Viewport.DocumentPoint(view, document.Size);
+            CropDragMode cropMode = cropGeometry.Hit(view) is TransformDragMode.Resize r ? new CropDragMode.Resize(r.Handle)
+                : cropGeometry.Contains(view) ? new CropDragMode.Move() : new CropDragMode.Create();
+            _cropDrag = new CropDrag(docStart, frame, cropMode);
+            e.Pointer.Capture(this);
+            e.Handled = true;
+            return;
+        }
+
         if (_vm.Tool != EditorTool.Move)
         {
             return;
@@ -280,6 +328,19 @@ public sealed class EditorCanvas : Control
         }
 
         var view = e.GetPosition(this).ToCore();
+        if (_cropDrag is { } cropDrag)
+        {
+            var docPoint = _vm.Viewport.DocumentPoint(view, document.Size);
+            var symmetric = e.KeyModifiers.HasFlag(KeyModifiers.Alt);
+            var ratio = _vm.Session.CropRatio;
+            var rect = cropDrag.Updated(docPoint, ratio, symmetric);
+            var (xs, ys) = _vm.Session.CropSnapTargets();
+            rect = new CropSnap(xs, ys, TransformSnap.Distance / _vm.Viewport.PointsPerPixel).Apply(rect, cropDrag, docPoint, ratio, symmetric);
+            _vm.Session.SetCropRect(CropGeometry.Snapped(rect));
+            e.Handled = true;
+            return;
+        }
+
         if (_drag is { } drag)
         {
             var docPoint = _vm.Viewport.DocumentPoint(view, document.Size);
@@ -303,7 +364,12 @@ public sealed class EditorCanvas : Control
             return;
         }
 
-        if (_vm.Tool == EditorTool.Move && _vm.OverlayGeometry is { } geometry)
+        if (_vm.Tool == EditorTool.Crop && _vm.CropFrame is { } cropFrame)
+        {
+            var cropGeometry = new TransformOverlayGeometry(new LayerTransform(cropFrame.Origin, cropFrame.Size), _vm.Viewport, document.Size);
+            Cursor = cropGeometry.Hit(view) is TransformDragMode.Resize ? new Cursor(StandardCursorType.SizeAll) : cropGeometry.Contains(view) ? new Cursor(StandardCursorType.Hand) : new Cursor(StandardCursorType.Cross);
+        }
+        else if (_vm.Tool == EditorTool.Move && _vm.OverlayGeometry is { } geometry)
         {
             Cursor = geometry.Hit(view) switch
             {
@@ -343,6 +409,13 @@ public sealed class EditorCanvas : Control
             _vm?.Session.CommitTransform();
             e.Handled = true;
         }
+
+        if (_cropDrag is not null)
+        {
+            _cropDrag = null;
+            e.Pointer.Capture(null);
+            e.Handled = true;
+        }
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -368,6 +441,17 @@ public sealed class EditorCanvas : Control
             case Key.Escape when _drag is not null:
                 _drag = null;
                 _vm.Session.CancelTransform();
+                break;
+            case Key.Escape when _vm.Tool == EditorTool.Crop:
+                _cropDrag = null;
+                _vm.CancelCrop();
+                break;
+            case Key.Enter when _vm.Tool == EditorTool.Crop:
+                _cropDrag = null;
+                _vm.CommitCrop();
+                break;
+            case Key.C when plain:
+                _vm.Tool = EditorTool.Crop;
                 break;
             case Key.Left when _vm.Tool == EditorTool.Move:
                 _vm.Session.NudgeLayer(-step, 0);
