@@ -277,6 +277,16 @@ public sealed class EditorCanvas : Control
             return;
         }
 
+        if (_vm.Tool is EditorTool.Brush or EditorTool.Eraser)
+        {
+            if (_vm.BeginBrushStroke(_vm.Viewport.DocumentPoint(view, document.Size)))
+            {
+                e.Pointer.Capture(this);
+                e.Handled = true;
+            }
+            return;
+        }
+
         if (_vm.Tool != EditorTool.Move)
         {
             return;
@@ -351,6 +361,12 @@ public sealed class EditorCanvas : Control
         if (_vm.Tool == EditorTool.Marquee && _vm.MarqueeDraft is not null)
         {
             _vm.UpdateMarquee(_vm.Viewport.DocumentPoint(view, document.Size), e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+            e.Handled = true;
+            return;
+        }
+        if (_vm.Tool is EditorTool.Brush or EditorTool.Eraser && e.Pointer.Captured == this)
+        {
+            _vm.ContinueBrushStroke(_vm.Viewport.DocumentPoint(view, document.Size));
             e.Handled = true;
             return;
         }
@@ -449,6 +465,13 @@ public sealed class EditorCanvas : Control
             e.Pointer.Capture(null);
             e.Handled = true;
         }
+
+        if (_vm?.Tool is (EditorTool.Brush or EditorTool.Eraser) && e.Pointer.Captured == this)
+        {
+            _vm.CommitBrushStroke();
+            e.Pointer.Capture(null);
+            e.Handled = true;
+        }
     }
 
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
@@ -460,6 +483,7 @@ public sealed class EditorCanvas : Control
         }
 
         _vm?.CancelMarquee();
+        _vm?.CancelBrushStroke();
 
         _panStart = null;
     }
@@ -504,6 +528,12 @@ public sealed class EditorCanvas : Control
                 break;
             case Key.C when plain:
                 _vm.Tool = EditorTool.Crop;
+                break;
+            case Key.B when plain:
+                _vm.Tool = EditorTool.Brush;
+                break;
+            case Key.E when plain:
+                _vm.Tool = EditorTool.Eraser;
                 break;
             case Key.Left when _vm.Tool == EditorTool.Move:
                 _vm.Session.NudgeLayer(-step, 0);

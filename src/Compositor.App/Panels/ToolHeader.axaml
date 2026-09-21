@@ -48,5 +48,12 @@
       <Button Content="Deselect" Command="{Binding Deselect}" Margin="6,0,0,0" Padding="12,4" />
       <TextBlock Classes="label" Text="Drag to select · Shift makes a square · Ctrl+D deselects" />
     </StackPanel>
+    <StackPanel Orientation="Horizontal" Margin="8,0" VerticalAlignment="Center" IsVisible="{Binding ShowsBrushControls}">
+      <TextBlock Classes="label" Text="Size" />
+      <NumericUpDown Value="{Binding BrushSize}" Minimum="1" Maximum="2000" FormatString="0.#" />
+      <TextBlock Classes="label" Text="Opacity %" />
+      <NumericUpDown Value="{Binding BrushOpacityPercent}" Minimum="1" Maximum="100" FormatString="0" />
+      <TextBlock Classes="label" Text="Black foreground · B brush · E eraser · selection clips strokes" />
+    </StackPanel>
   </Grid>
 </UserControl>

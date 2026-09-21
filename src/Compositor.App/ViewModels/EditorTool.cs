@@ -6,6 +6,8 @@ public enum EditorTool
     Move,
     Crop,
     Marquee,
+    Brush,
+    Eraser,
     Hand,
     Zoom,
 }

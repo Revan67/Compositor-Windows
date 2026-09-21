@@ -101,6 +101,25 @@ public sealed class ProjectStoreTests : IDisposable
     }
 
     [Fact]
+    public void PaintedLayerSurvivesSaveAndReopen()
+    {
+        var session = new EditorSession();
+        session.CreateDocument(48, 32, emptyLayer: true);
+        var layer = session.ActiveLayer!;
+        using var stroke = new BrushStroke(layer, null, BrushMode.Paint, 9, 0.75, SKColors.Magenta);
+        stroke.Add(new Point(8, 8));
+        stroke.Add(new Point(36, 24));
+        session.ReplaceLayerAsset(layer.Id, stroke.Commit(layer.Name), layer.Transform, "Brush Stroke");
+        var before = session.ActiveLayer!.Asset!.Image;
+        var path = PathFor("painted.comp");
+
+        ProjectStore.Save(ProjectSnapshot.From(session.Document!, session.ActiveLayerId), path);
+        var reopened = ProjectStore.Load(path).ToDocument();
+
+        Assert.True(Bitmaps.BytesEqual(before, reopened.Layers.Single().Asset!.Image));
+    }
+
+    [Fact]
     public void ManifestOmitsDefaultsAndUsesDocumentedNames()
     {
         var (document, _) = Everything();

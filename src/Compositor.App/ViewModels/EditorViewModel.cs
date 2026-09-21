@@ -3,6 +3,7 @@ using Avalonia.Media.Imaging;
 using Compositor.Core.Document;
 using Compositor.Core.Geometry;
 using Compositor.Core.Project;
+using Compositor.Core.Raster;
 using Compositor.Core.Rendering;
 using SkiaSharp;
 
@@ -25,6 +26,10 @@ public sealed class EditorViewModel : ObservableObject
     private EditorTool _tool = EditorTool.Move;
     private Compositor.Core.Geometry.Rect? _marqueeDraft;
     private Point? _marqueeStart;
+    private BrushStroke? _brushStroke;
+    private CanvasDocument? _brushPreviewDocument;
+    private double _brushSize = 24;
+    private double _brushOpacityPercent = 100;
 
     public EditorViewModel()
     {
@@ -103,10 +108,16 @@ public sealed class EditorViewModel : ObservableObject
                     CancelMarquee();
                 }
 
+                if (_tool is EditorTool.Brush or EditorTool.Eraser)
+                {
+                    CancelBrushStroke();
+                }
+
                 Set(ref _tool, value);
                 Raise(nameof(ShowsTransformControls));
                 Raise(nameof(ShowsCropControls));
                 Raise(nameof(ShowsSelectionControls));
+                Raise(nameof(ShowsBrushControls));
                 Raise(nameof(OverlayGeometry));
             }
         }
@@ -131,6 +142,83 @@ public sealed class EditorViewModel : ObservableObject
     public bool ShowsCropControls => Tool == EditorTool.Crop && HasDocument;
 
     public bool ShowsSelectionControls => Tool == EditorTool.Marquee && HasDocument;
+
+    public bool ShowsBrushControls => Tool is EditorTool.Brush or EditorTool.Eraser && HasDocument;
+
+    public double BrushSize
+    {
+        get => _brushSize;
+        set => Set(ref _brushSize, Math.Clamp(value, 1, 2_000));
+    }
+
+    public double BrushOpacityPercent
+    {
+        get => _brushOpacityPercent;
+        set => Set(ref _brushOpacityPercent, Math.Clamp(value, 1, 100));
+    }
+
+    public bool BeginBrushStroke(Point point)
+    {
+        if (Session.Document is not { } document || Session.ActiveLayer is not { IsGroup: false } layer || Session.IsMaskSelected)
+        {
+            return false;
+        }
+
+        _brushStroke = new BrushStroke(layer, document.Selection, Tool == EditorTool.Eraser ? BrushMode.Erase : BrushMode.Paint, BrushSize, BrushOpacityPercent / 100, SKColors.Black);
+        Session.IsBusy = true;
+        _brushStroke.Add(point);
+        RefreshBrushPreview(document, layer);
+        return true;
+    }
+
+    public void ContinueBrushStroke(Point point)
+    {
+        if (_brushStroke is not { } stroke || Session.Document is not { } document || Session.ActiveLayer is not { } layer)
+        {
+            return;
+        }
+
+        stroke.Add(point);
+        RefreshBrushPreview(document, layer);
+    }
+
+    public void CommitBrushStroke()
+    {
+        if (_brushStroke is not { } stroke)
+        {
+            return;
+        }
+
+        var mode = stroke.Mode;
+        var asset = stroke.Commit(Session.ActiveLayer?.Name ?? "Layer");
+        Session.IsBusy = false;
+        _brushStroke = null;
+        _brushPreviewDocument = null;
+        Session.ReplaceLayerAsset(stroke.LayerId, asset, stroke.Transform, mode == BrushMode.Erase ? "Erase Stroke" : "Brush Stroke");
+    }
+
+    public void CancelBrushStroke()
+    {
+        if (_brushStroke is null)
+        {
+            return;
+        }
+
+        _brushStroke.Dispose();
+        _brushStroke = null;
+        _brushPreviewDocument = null;
+        Session.IsBusy = false;
+        _compositeOf = null;
+        Raise(nameof(Composite));
+    }
+
+    private void RefreshBrushPreview(CanvasDocument document, ImageLayer layer)
+    {
+        var previewAsset = new ImportedImage(_brushStroke!.Preview, _brushStroke.Preview, layer.Name);
+        _brushPreviewDocument = document with { Layers = document.Layers.Select(item => item.Id == layer.Id ? item with { Asset = previewAsset } : item).ToList() };
+        _compositeOf = null;
+        Raise(nameof(Composite));
+    }
 
     public Compositor.Core.Geometry.Rect? SelectionFrame => MarqueeDraft ?? Session.Document?.Selection?.Bounds;
 
@@ -296,7 +384,7 @@ public sealed class EditorViewModel : ObservableObject
     {
         get
         {
-            if (Session.DisplayedDocument is not { } document)
+            if ((_brushPreviewDocument ?? Session.DisplayedDocument) is not { } document)
             {
                 return null;
             }
@@ -421,6 +509,7 @@ public sealed class EditorViewModel : ObservableObject
         Raise(nameof(CropRatioChoice));
         Raise(nameof(CropFrame));
         Raise(nameof(ShowsSelectionControls));
+        Raise(nameof(ShowsBrushControls));
         Raise(nameof(SelectionFrame));
         Inspector.Refresh();
     }

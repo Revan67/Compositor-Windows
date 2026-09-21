@@ -86,4 +86,5 @@ public sealed class CanvasInteractionTests
         viewModel.Session.Undo();
         Assert.Null(viewModel.Session.Document!.Selection);
     }
+
 }
