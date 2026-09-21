@@ -117,6 +117,17 @@ Order matters: the tile/snapshot layer first, because every other piece (rendere
 
 No Mac is available and none is needed; nothing in this plan depends on running the original app.
 
+### Implementation and testing cadence
+
+Until the primary editor workflows are reachable through the Windows UI, development proceeds in **vertical slices** rather than translating the entire reference test suite up front:
+
+1. Build enough UI and tool behavior to make one workflow usable end to end.
+2. Add focused tests for destructive operations, persistence, invariants and regressions discovered during hands-on testing.
+3. Run the workflow in an instrumented alpha build and use its diagnostic log to find integration failures.
+4. Harden pixel-level edge cases after the feature is operable and can be evaluated in context.
+
+The existing Core and project-file tests remain release gates. New exhaustive numeric and combinatorial tests should follow working UI/tool slices unless they are needed to make a risky algorithm safe. The goal is neither test-count growth nor line-for-line translation; it is a usable editor protected at the boundaries where data loss or silent corruption can occur.
+
 - **Fixtures** are written by hand in our own format. The reference spec names every field, default and rejection rule, which is enough to author valid and deliberately-invalid projects.
 - **Expected pixel output** comes from the reference Swift test suite. The 47 suites assert exact pixel values, coverage, bounds and histogram numbers for blends, masks, brush strokes, adjustments and filters. Each suite is ported to a C# test class of the same name with the same numbers; they are the specification.
 - **What this does not catch:** things the reference never asserted on (downsampling filter choice, exact antialiasing of marching ants). Those are cosmetic and reviewed by eye — and since this is an independent app, matching the Mac pixel-for-pixel is not a goal anyway.
@@ -149,6 +160,7 @@ No Mac is available and none is needed; nothing in this plan depends on running 
 
 ### Phase 4 — Platform polish and advanced non-destructive features (large)
 - **Layer effects**: non-destructive Stroke, Drop Shadow, Color Overlay and Inner Shadow, including visibility, undo, duplication, transforms, masks, clipping, export and project persistence. Start with a correct bounded Skia/CPU renderer and shared preview cache; consider GPU acceleration only after profiling. Define and test the Windows schema independently because the upstream 1.1.4 documentation describes fewer effects than its implementation.
+- **Native layered PSD opening**: read PSD/PSB files directly with no Photoshop installation or automation dependency. Preserve raster layers, names, order, visibility, opacity, supported blend modes, groups and raster masks where representable in the Compositor model. Use the embedded composite as a fallback for unsupported constructs and report what was flattened or omitted rather than silently changing the document. Treat 8-bit RGB files as the first interoperability slice, then add 16-bit, CMYK, smart objects, text/effects and other descriptors according to real test files. Opening/import is required; PSD export is a separate future decision.
 - **Remove Background**: ONNX Runtime (CPU, DirectML optional) + RMBG-1.4 or ISNet-general. Model downloaded on first use into `%LOCALAPPDATA%\Compositor\models`. Same UX as the reference (menu item, undoable).
 - **GPU brush**: only if profiling the software path on a 4K canvas / 800 px tip shows it above the reference numbers in `docs/brush-performance.md` (2.6–3.1 ms median). ComputeSharp (D3D12) port of the Metal kernel; keep the software path as fallback.
 - **Updater via GitHub Releases.** On launch (and from Help → Check for Updates) call `GET https://api.github.com/repos/Revan67/Compositor-Windows/releases/latest`, compare the tag to the running version, and offer to download the release asset (installer or zip) and run/replace. Unauthenticated API is rate-limited to 60 req/h per IP, which is plenty for once-per-launch. Verify the asset with a SHA-256 listed in the release notes before running it. No appcast, no server.
@@ -163,6 +175,7 @@ No Mac is available and none is needed; nothing in this plan depends on running 
 | --- | --- | --- |
 | **Remove Background** needs a model | Only feature with no OS API on Windows | ONNX Runtime + downloadable model. Quality differs from Apple's Vision model — set expectations. Cut candidate only if the model download is unacceptable. |
 | **HEIC import** | Skia has no HEIC on Windows | WIC path; requires Microsoft HEVC extension (free with most OEM Windows, else $0.99). TIFF also via WIC. |
+| **PSD/PSB compatibility** | The format has many color modes, resources and Adobe-specific layer descriptors | Implement a bounded native reader in slices, retain the composite fallback, warn on unsupported content, and maintain a corpus of real and generated PSD fixtures. Never require Photoshop or pretend unsupported editable features survived. |
 | **Channel order** (CG RGBA vs Skia BGRA) | Silent colour swaps in C kernels that read named channels | Choose one working order for the whole Core (BGRA premul, Skia-native) and audit each C entry point once; golden tests catch the rest. |
 | **Brush latency on CPU** | Feels worse than the reference on large soft tips | Tile-parallel software path (`Parallel.For` over dirty tiles), then Phase 4 GPU if needed. Measure with the same 4K/800 px benchmark. |
 | **No reference app to run** | Can't compare against real output | Fixtures from the spec; Swift test assertions as the oracle (see Verification). |
