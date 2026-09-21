@@ -2,6 +2,8 @@
 
 _Drafted 2026-09-19 from Compositor 1.0.4 (`a19db90`). Living document; update as decisions land. Upstream through 1.1.4 (`611894a`) was reviewed on 2026-09-20 as reference material only; this project remains an independent rewrite._
 
+For the concise current feature matrix and immediate priorities, see [`port-status.md`](port-status.md). The detailed phase notes below include historical snapshots and should not be read as the live status by themselves.
+
 ## Goal
 
 An **independent Windows application**, not a cross-platform build. Compositor 1.0.4's Swift source and tests are the reference design: every feature in the README, ported to C#, with no obligation to read Mac project files or to track later Mac releases. Lightweight to ship: a single self-contained folder or installer, no MSIX, no Windows App SDK, fast startup.
@@ -212,7 +214,7 @@ MIT fork. A rewrite in another language is still derivative: keep `LICENSE`, car
 - Tests: xunit.v3 on Microsoft.Testing.Platform (`global.json` opts in; .NET 10 SDK no longer runs MTP through VSTest). `dotnet test` at the root runs both projects: 9/9 pass, each asserting real kernel output.
 - Run: `dotnet build` then `src\Compositor.App\bin\Debug\net10.0\Compositor.App.exe`; `dotnet test` for tests.
 
-Next: Phase 2 — shell UI. Start with the editor canvas (zoom/pan/fit, checkerboard, `DocumentRenderer` through the Skia lease) and the layers panel bound to `EditorSession`.
+Next at that checkpoint was Phase 2 shell UI; that work has since landed. See [`port-status.md`](port-status.md) for current work.
 
 ### Phase 1 — done 2026-09-19
 110 tests in `Compositor.Core.Tests`, 114 across the solution, all green:
@@ -238,4 +240,4 @@ First increment, runnable:
 - `Compositor.App`: `EditorViewModel` (session + viewport + cached composite + layer rows + commands), `EditorCanvas` (Skia lease; checkerboard, composite with mipmapped shrink / nearest enlarge, pixel grid from 8×, wheel pan, Ctrl+wheel zoom about the pointer, middle/Space drag pan, file drop imports at the drop point), `LayersPanel` (rows top-first with thumbnails, folder indent, clip arrow, mask badge, eye toggle, active highlight; blend mode and opacity for the active layer with a one-undo drag; context menu; bottom actions), `NewCanvasWindow`, rename prompt, discard-changes confirm, menus with Photoshop-style shortcuts (Ctrl+N/O/S/Shift+S, Z/Shift+Z/Y, Shift+N, J, G, [, ], +, -, 0, 1), status bar with zoom readout, command-line files (`.comp` opens; images make a canvas and import).
 - Verified on screen: two images imported, composited at fit zoom, rows and controls populated.
 
-Next in Phase 2: Move/Transform tool (handles, rotate, snapping, Transform Inspector), multi-select and drag-reorder in the layers panel, Crop, Canvas Size / Image Size sheets, JPEG export sheet with preview, project tabs, HEIC/TIFF via WIC. Rendering note: the composite is rebuilt whole on every document change (fine at 1080p, will need tile/region invalidation before the brush lands).
+Since this checkpoint, Move/Transform, snapping, the Transform Inspector, Crop, rectangular marquee, basic Brush/Eraser, JPEG export, diagnostics and reproducible Windows publishing have landed. Remaining Phase 2 polish includes advanced layer-list interaction, Canvas/Image Size sheets, project tabs and HEIC/TIFF via WIC. See [`port-status.md`](port-status.md) for the live matrix. Rendering still rebuilds the composite during live brush preview; profile broader-alpha workloads before selecting tile/region invalidation work.

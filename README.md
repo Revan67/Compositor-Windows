@@ -1,31 +1,35 @@
 # Compositor for Windows
 
 [![License: MIT](https://img.shields.io/github/license/Revan67/Compositor-Windows)](LICENSE)
+[![Windows build](https://img.shields.io/github/actions/workflow/status/Revan67/Compositor-Windows/windows.yml?branch=main&label=build&logo=githubactions&logoColor=white)](https://github.com/Revan67/Compositor-Windows/actions/workflows/windows.yml)
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/download)
-[![Avalonia 12](https://img.shields.io/badge/Avalonia-12-8B44AC)](https://avaloniaui.net)
-[![SkiaSharp](https://img.shields.io/badge/SkiaSharp-3.119-0D9488)](https://github.com/mono/SkiaSharp)
+[![Avalonia 12.1](https://img.shields.io/badge/Avalonia-12.1-8B44AC)](https://avaloniaui.net)
+[![SkiaSharp 3.119](https://img.shields.io/badge/SkiaSharp-3.119-0D9488)](https://github.com/mono/SkiaSharp)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)](#building)
-[![Status: work in progress](https://img.shields.io/badge/status-work%20in%20progress-orange)](#status)
+[![Architectures](https://img.shields.io/badge/architectures-x64%20%7C%20arm64-0078D4)](#building)
+[![Tests](https://img.shields.io/badge/tests-152%20passing-brightgreen)](#testing)
+[![Status: broader alpha](https://img.shields.io/badge/status-broader%20alpha-orange)](#status)
 [![Last commit](https://img.shields.io/github/last-commit/Revan67/Compositor-Windows)](https://github.com/Revan67/Compositor-Windows/commits/main)
+[![Open issues](https://img.shields.io/github/issues/Revan67/Compositor-Windows)](https://github.com/Revan67/Compositor-Windows/issues)
 [![Derived from Compositor](https://img.shields.io/badge/derived%20from-robbietilton%2FCompositor-lightgrey)](https://github.com/robbietilton/Compositor)
 
-A free, open-source layered image editor for Windows, built around a Photoshop-style compositing workflow: layers and folders, masks, clipping masks, blend modes, non-destructive transforms, selections, brushes, retouching tools, adjustments and filters.
+A free, open-source layered image editor for Windows, built around a Photoshop-style compositing workflow. The current alpha supports layered documents, folders, masks, clipping masks, blend modes, transforms, crop, rectangular selections, brush/eraser work, project persistence, and common image import/export. Retouching tools, adjustments, filters, editable text/shapes, and PSD/PSB interoperability remain on the roadmap.
 
-This is an independent Windows application derived from [Compositor](https://github.com/robbietilton/Compositor) by Robbie Tilton, a macOS app written in Swift. The Windows version is a C# rewrite on [Avalonia](https://avaloniaui.net) and [SkiaSharp](https://github.com/mono/SkiaSharp); it keeps the original's features and reuses its C pixel kernels unchanged, but has its own project format and does not track the Mac app.
+This is an independent Windows application derived from [Compositor](https://github.com/robbietilton/Compositor) by Robbie Tilton, a macOS app written in Swift. The Windows version is a C# rewrite on [Avalonia](https://avaloniaui.net) and [SkiaSharp](https://github.com/mono/SkiaSharp); it uses the original behavior as a specification and reuses its C pixel kernels unchanged, but has its own project format and does not track the Mac app as a merge upstream.
 
 ## Status
 
-Work in progress. The port is being built in phases; see [docs/windows-port-plan.md](docs/windows-port-plan.md) for the plan, decisions and what is done.
+This is a broader alpha, not a release. The project is suitable for workflow testing and contributor evaluation, but not yet for irreplaceable production documents. See the [live port status](docs/port-status.md), [alpha testing guide](docs/alpha-testing.md), and [Windows port plan](docs/windows-port-plan.md).
 
 | Phase | Scope | State |
 | --- | --- | --- |
 | 0 | Solution, native kernels, Avalonia window drawing through Skia | Done |
 | 1 | Document model, sparse raster tiles, compositor (masks, folders, clipping, blend modes), image codec, project file, undo history, editing session | Done — headless |
-| 2 | Shell UI: canvas, layers panel, menus, transform and crop tools, sheets | In progress |
-| 3 | Selections, brush and retouching tools, adjustments, filters, live shapes and editable text | |
-| 4 | Layer effects, native PSD/PSB import and export, Remove Background, platform polish and installer | |
+| 2 | Shell UI: canvas, layers panel, menus, transform and crop tools, sheets | Core workflow working; polish remains |
+| 3 | Selections, brush and retouching tools, adjustments, filters, live shapes and editable text | In progress: marquee, brush and eraser working |
+| 4 | Layer effects, native PSD/PSB import and export, Remove Background, platform polish and installer | Planned |
 
-The editor can create, open, save, import and export documents; navigate the canvas; manage layers; transform or crop content; create rectangular selections; and paint or erase on transformed layers with live preview, selection clipping and single-step undo. The current solution has 152 automated tests.
+The editor can create, open, save, import and export documents; navigate the canvas; manage layers; transform or crop content; create rectangular selections; and paint or erase on transformed layers with live preview, selection clipping and single-step undo. Diagnostics record reconstructable workflows for alpha reports. The current solution has 152 automated tests.
 
 ## Building
 
@@ -34,10 +38,11 @@ Requirements:
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - Visual Studio 2022 with the **C++ Clang tools for Windows** component — used only to compile the C pixel kernels (`scripts/build-kernels.ps1` finds it through `vswhere`; no CMake)
 
-```
-dotnet build
-dotnet test
-src\Compositor.App\bin\Debug\net10.0\Compositor.App.exe
+```powershell
+dotnet restore Compositor.slnx
+dotnet build Compositor.slnx
+dotnet test Compositor.slnx
+& .\src\Compositor.App\bin\Debug\net10.0\Compositor.App.exe
 ```
 
 To restore, build and test a clean x64 checkout in one command:
@@ -47,6 +52,16 @@ To restore, build and test a clean x64 checkout in one command:
 ```
 
 Add `-Publish` to also create a self-contained folder and ZIP under `dist/`. To publish a specific architecture directly, run `scripts\publish-windows.ps1 -Arch x64` or `-Arch arm64`. The publish smoke test verifies the executable, native DLL and required kernel exports; an arm64 native DLL must be load-tested on an arm64 host.
+
+The GitHub Actions workflow builds and publishes CI artifacts for x64 and arm64. CI artifacts are development outputs, not signed releases.
+
+## Testing
+
+```powershell
+dotnet test Compositor.slnx --configuration Release
+```
+
+The suite covers the native kernels, geometry, rendering, document/history behavior, project validation and round trips, canvas interactions, and diagnostics. For hands-on coverage, follow [docs/alpha-testing.md](docs/alpha-testing.md). Keep original assets backed up and report the smallest reproduction plus the newest diagnostic log.
 
 ### Alpha diagnostics
 
@@ -66,6 +81,18 @@ Compositor/, CompositorTests/, Compositor.xcodeproj   The original Mac source, k
 ## Project files
 
 `.comp` is a zip archive containing `manifest.json` and one PNG per layer (plus `.mask.png` for masks). The schema follows the original's layout but carries its own identifier (`com.compositor.windows.project`); files from the Mac app are not read. Saves are atomic: a sibling temp file is written, validated and swapped in.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Upstream macOS Compositor is reference material only: this repository is an independent C#/Avalonia rewrite, so upstream commits are reviewed and reimplemented rather than merged.
+
+## Documentation
+
+- [Port status](docs/port-status.md) — live feature matrix and immediate priorities
+- [Alpha testing](docs/alpha-testing.md) — workflows and useful bug reports
+- [Windows port plan](docs/windows-port-plan.md) — architecture, phases, risks and decisions
+- [Project format](docs/project-format.md) — `.comp` schema and validation
+- [Brush performance](docs/brush-performance.md) — reference implementation behavior and performance targets
 
 ## License
 
