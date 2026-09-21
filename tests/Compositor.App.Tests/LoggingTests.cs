@@ -1,5 +1,6 @@
 using Compositor.App.Diagnostics;
 using Compositor.App.ViewModels;
+using Compositor.Core.Document;
 
 namespace Compositor.App.Tests;
 
@@ -15,6 +16,9 @@ public sealed class LoggingTests
             var observed = false;
             var command = new AsyncRelayCommand(() => throw new InvalidOperationException("diagnostic probe"), onError: _ => observed = true, name: "Test.Probe");
             await command.ExecuteAsync();
+            var session = new EditorSession();
+            session.CreateDocument(32, 24, emptyLayer: true);
+            session.Undo();
             var path = Assert.IsType<string>(AppLog.CurrentPath);
             AppLog.Shutdown();
 
@@ -23,6 +27,8 @@ public sealed class LoggingTests
             Assert.Contains("Begin Test.Probe", contents);
             Assert.Contains("Failed Test.Probe", contents);
             Assert.Contains("diagnostic probe", contents);
+            Assert.Contains("Edit begin: New Canvas", contents);
+            Assert.Contains("History undo: New Canvas", contents);
         }
         finally
         {

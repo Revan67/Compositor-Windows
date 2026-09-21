@@ -21,6 +21,11 @@ $hostArch = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.To
 $skipNativeLoad = $SkipSmokeTest -or $hostArch -ne $Arch
 & (Join-Path $PSScriptRoot "test-publish.ps1") -PublishDirectory $output -ExpectedArch $Arch -SkipLoad:$skipNativeLoad
 
+$alphaGuide = Join-Path $repoRoot "docs\alpha-testing.md"
+if (Test-Path -LiteralPath $alphaGuide) {
+    Copy-Item -LiteralPath $alphaGuide -Destination (Join-Path $output "ALPHA-TESTING.md") -Force
+}
+
 $zip = Join-Path $repoRoot "dist\Compositor-$runtime.zip"
 Compress-Archive -Path (Join-Path $output "*") -DestinationPath $zip -Force
 Write-Host "Published $output"

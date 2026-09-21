@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace Compositor.App.Diagnostics;
@@ -6,10 +7,13 @@ namespace Compositor.App.Diagnostics;
 /// <summary>A local, per-run diagnostic log for alpha testing and crash investigation.</summary>
 internal static class AppLog
 {
+    private const int RetainedLogCount = 20;
     private static readonly object Gate = new();
     private static StreamWriter? _writer;
+    private static AppTraceListener? _listener;
 
     public static string? CurrentPath { get; private set; }
+    public static string LogDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Compositor", "Logs");
 
     public static void Initialize(string? directory = null)
     {
@@ -20,12 +24,15 @@ internal static class AppLog
                 return;
             }
 
-            directory ??= Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Compositor", "Logs");
+            directory ??= LogDirectory;
             Directory.CreateDirectory(directory);
+            Prune(directory);
             CurrentPath = Path.Combine(directory, $"compositor-{DateTime.Now:yyyyMMdd-HHmmss}-{Environment.ProcessId}.log");
             _writer = new StreamWriter(new FileStream(CurrentPath, FileMode.CreateNew, FileAccess.Write, FileShare.ReadWrite)) { AutoFlush = true };
-            Trace.Listeners.Add(new AppTraceListener());
-            Info("Application", $"Starting Compositor; version={typeof(AppLog).Assembly.GetName().Version}; os={RuntimeInformation.OSDescription}; arch={RuntimeInformation.ProcessArchitecture}; runtime={RuntimeInformation.FrameworkDescription}");
+            _listener = new AppTraceListener();
+            Trace.Listeners.Add(_listener);
+            var build = typeof(AppLog).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? typeof(AppLog).Assembly.GetName().Version?.ToString();
+            Info("Application", $"Starting Compositor; build={build}; os={RuntimeInformation.OSDescription}; arch={RuntimeInformation.ProcessArchitecture}; runtime={RuntimeInformation.FrameworkDescription}");
             Info("Application", $"Log file: {CurrentPath}");
         }
     }
@@ -44,8 +51,28 @@ internal static class AppLog
             }
 
             WriteCore("INFO", "Application", "Stopping Compositor", null);
+            if (_listener is not null)
+            {
+                Trace.Listeners.Remove(_listener);
+                _listener = null;
+            }
             _writer.Dispose();
             _writer = null;
+        }
+    }
+
+    private static void Prune(string directory)
+    {
+        try
+        {
+            foreach (var stale in new DirectoryInfo(directory).GetFiles("compositor-*.log").OrderByDescending(file => file.LastWriteTimeUtc).Skip(RetainedLogCount - 1))
+            {
+                stale.Delete();
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Debug.WriteLine($"Could not prune old Compositor logs: {e.Message}");
         }
     }
 

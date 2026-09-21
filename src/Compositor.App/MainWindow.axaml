@@ -74,6 +74,9 @@
         <MenuItem Header="Fit to Window" InputGesture="Ctrl+0" Command="{Binding FitToWindow}" />
         <MenuItem Header="Actual Pixels" InputGesture="Ctrl+1" Command="{Binding ActualSize}" />
       </MenuItem>
+      <MenuItem Header="_Help">
+        <MenuItem Header="Open Diagnostic Logs" Command="{Binding #Root.OpenLogsCommand}" />
+      </MenuItem>
     </Menu>
 
     <Border DockPanel.Dock="Bottom" Background="#2D2D30" Height="24">

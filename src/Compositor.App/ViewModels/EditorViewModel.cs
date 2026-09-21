@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Avalonia.Media.Imaging;
+using Compositor.App.Diagnostics;
 using Compositor.Core.Document;
 using Compositor.Core.Geometry;
 using Compositor.Core.Project;
@@ -30,28 +31,31 @@ public sealed class EditorViewModel : ObservableObject
     private CanvasDocument? _brushPreviewDocument;
     private double _brushSize = 24;
     private double _brushOpacityPercent = 100;
+    private DateTimeOffset _brushStarted;
+    private int _brushPointCount;
+    private Compositor.Core.Geometry.Rect _brushBounds;
 
     public EditorViewModel()
     {
         Session.Changed += OnSessionChanged;
         Session.DocumentResized += Fit;
-        CropCommit = new RelayCommand(CommitCrop, () => Tool == EditorTool.Crop);
-        CropCancel = new RelayCommand(CancelCrop, () => Tool == EditorTool.Crop);
+        CropCommit = new RelayCommand(CommitCrop, () => Tool == EditorTool.Crop, "Crop.Commit");
+        CropCancel = new RelayCommand(CancelCrop, () => Tool == EditorTool.Crop, "Crop.Cancel");
         SelectAll = new RelayCommand(SelectAllPixels, () => HasDocument, name: "Select.All");
         Deselect = new RelayCommand(() => Session.SetSelection(null, "Deselect"), () => Session.Document?.Selection is not null, name: "Select.Deselect");
-        Undo = new RelayCommand(Session.Undo, () => Session.CanUndo);
-        Redo = new RelayCommand(Session.Redo, () => Session.CanRedo);
-        AddLayer = new RelayCommand(Session.AddBlankLayer, () => Session.CanEditLayers);
-        AddFolder = new RelayCommand(Session.AddGroup, () => Session.CanEditLayers);
-        DuplicateLayer = new RelayCommand(Session.DuplicateActiveLayer, () => Session.ActiveLayer is { IsGroup: false });
-        DeleteLayer = new RelayCommand(Session.DeleteSelectedLayers, () => Session.ActiveLayer is not null);
-        MoveLayerUp = new RelayCommand(() => Session.MoveActiveLayer(1), () => Session.CanMoveActiveLayer(1));
-        MoveLayerDown = new RelayCommand(() => Session.MoveActiveLayer(-1), () => Session.CanMoveActiveLayer(-1));
-        GroupLayers = new RelayCommand(Session.GroupSelectedLayers, () => Session.SelectedLayerIds.Count > 0);
-        AddMask = new RelayCommand(() => Session.AddLayerMask(), () => Session.ActiveLayer is { Mask: null });
-        ToggleMask = new RelayCommand(Session.ToggleLayerMask, () => Session.ActiveLayer?.Mask is not null);
-        DeleteMask = new RelayCommand(Session.DeleteLayerMask, () => Session.ActiveLayer?.Mask is not null);
-        ToggleClipping = new RelayCommand(() => Session.ToggleClippingMask(Session.ActiveLayerId!.Value), () => Session.ActiveLayerId is { } id && Session.CanToggleClippingMask(id));
+        Undo = new RelayCommand(Session.Undo, () => Session.CanUndo, "Edit.Undo");
+        Redo = new RelayCommand(Session.Redo, () => Session.CanRedo, "Edit.Redo");
+        AddLayer = new RelayCommand(Session.AddBlankLayer, () => Session.CanEditLayers, "Layer.Add");
+        AddFolder = new RelayCommand(Session.AddGroup, () => Session.CanEditLayers, "Layer.AddFolder");
+        DuplicateLayer = new RelayCommand(Session.DuplicateActiveLayer, () => Session.ActiveLayer is { IsGroup: false }, "Layer.Duplicate");
+        DeleteLayer = new RelayCommand(Session.DeleteSelectedLayers, () => Session.ActiveLayer is not null, "Layer.Delete");
+        MoveLayerUp = new RelayCommand(() => Session.MoveActiveLayer(1), () => Session.CanMoveActiveLayer(1), "Layer.MoveUp");
+        MoveLayerDown = new RelayCommand(() => Session.MoveActiveLayer(-1), () => Session.CanMoveActiveLayer(-1), "Layer.MoveDown");
+        GroupLayers = new RelayCommand(Session.GroupSelectedLayers, () => Session.SelectedLayerIds.Count > 0, "Layer.Group");
+        AddMask = new RelayCommand(() => Session.AddLayerMask(), () => Session.ActiveLayer is { Mask: null }, "Layer.AddMask");
+        ToggleMask = new RelayCommand(Session.ToggleLayerMask, () => Session.ActiveLayer?.Mask is not null, "Layer.ToggleMask");
+        DeleteMask = new RelayCommand(Session.DeleteLayerMask, () => Session.ActiveLayer?.Mask is not null, "Layer.DeleteMask");
+        ToggleClipping = new RelayCommand(() => Session.ToggleClippingMask(Session.ActiveLayerId!.Value), () => Session.ActiveLayerId is { } id && Session.CanToggleClippingMask(id), "Layer.ToggleClipping");
         ZoomIn = new RelayCommand(() => ZoomBy(2), () => Session.Document is not null);
         ZoomOut = new RelayCommand(() => ZoomBy(0.5), () => Session.Document is not null);
         ActualSize = new RelayCommand(() => SetZoom(1), () => Session.Document is not null);
@@ -97,6 +101,7 @@ public sealed class EditorViewModel : ObservableObject
         {
             if (_tool != value)
             {
+                AppLog.Info("Tool", $"Changed {_tool} -> {value}");
                 Session.CommitTransform();
                 if (_tool == EditorTool.Crop)
                 {
@@ -165,7 +170,11 @@ public sealed class EditorViewModel : ObservableObject
         }
 
         _brushStroke = new BrushStroke(layer, document.Selection, Tool == EditorTool.Eraser ? BrushMode.Erase : BrushMode.Paint, BrushSize, BrushOpacityPercent / 100, SKColors.Black);
+        _brushStarted = DateTimeOffset.UtcNow;
+        _brushPointCount = 1;
+        _brushBounds = new Compositor.Core.Geometry.Rect(point.X, point.Y, 0, 0);
         Session.IsBusy = true;
+        AppLog.Info("Paint", $"Stroke begin: mode={_brushStroke.Mode}; layer={layer.Id}; size={BrushSize:0.##}; opacity={BrushOpacityPercent:0.##}; selection={document.Selection is not null}; x={point.X:0.##}; y={point.Y:0.##}");
         _brushStroke.Add(point);
         RefreshBrushPreview(document, layer);
         return true;
@@ -179,6 +188,8 @@ public sealed class EditorViewModel : ObservableObject
         }
 
         stroke.Add(point);
+        _brushPointCount++;
+        _brushBounds = Compositor.Core.Geometry.Rect.FromEdges(Math.Min(_brushBounds.MinX, point.X), Math.Min(_brushBounds.MinY, point.Y), Math.Max(_brushBounds.MaxX, point.X), Math.Max(_brushBounds.MaxY, point.Y));
         RefreshBrushPreview(document, layer);
     }
 
@@ -195,6 +206,7 @@ public sealed class EditorViewModel : ObservableObject
         _brushStroke = null;
         _brushPreviewDocument = null;
         Session.ReplaceLayerAsset(stroke.LayerId, asset, stroke.Transform, mode == BrushMode.Erase ? "Erase Stroke" : "Brush Stroke");
+        AppLog.Info("Paint", $"Stroke commit: mode={mode}; layer={stroke.LayerId}; points={_brushPointCount}; bounds={_brushBounds.X:0.##},{_brushBounds.Y:0.##},{_brushBounds.Width:0.##},{_brushBounds.Height:0.##}; elapsedMs={(DateTimeOffset.UtcNow - _brushStarted).TotalMilliseconds:0.##}");
     }
 
     public void CancelBrushStroke()
@@ -205,6 +217,7 @@ public sealed class EditorViewModel : ObservableObject
         }
 
         _brushStroke.Dispose();
+        AppLog.Info("Paint", $"Stroke cancelled: points={_brushPointCount}; elapsedMs={(DateTimeOffset.UtcNow - _brushStarted).TotalMilliseconds:0.##}");
         _brushStroke = null;
         _brushPreviewDocument = null;
         Session.IsBusy = false;
@@ -243,6 +256,7 @@ public sealed class EditorViewModel : ObservableObject
 
         _marqueeStart = point;
         MarqueeDraft = new Compositor.Core.Geometry.Rect(point.X, point.Y, 0, 0);
+        AppLog.Info("Selection", $"Marquee begin: x={point.X:0.##}; y={point.Y:0.##}");
     }
 
     public void UpdateMarquee(Point point, bool square)
@@ -269,6 +283,7 @@ public sealed class EditorViewModel : ObservableObject
         if (Session.Document is { } document && MarqueeDraft is { } draft)
         {
             Session.SetSelection(DocumentSelection.Rectangle(draft, document.Bounds), "Marquee");
+            AppLog.Info("Selection", $"Marquee commit: x={draft.X:0.##}; y={draft.Y:0.##}; width={draft.Width:0.##}; height={draft.Height:0.##}");
         }
 
         _marqueeStart = null;
@@ -277,6 +292,11 @@ public sealed class EditorViewModel : ObservableObject
 
     public void CancelMarquee()
     {
+        if (MarqueeDraft is not null)
+        {
+            AppLog.Info("Selection", "Marquee cancelled");
+        }
+
         _marqueeStart = null;
         MarqueeDraft = null;
     }

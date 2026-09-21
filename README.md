@@ -50,7 +50,7 @@ Add `-Publish` to also create a self-contained folder and ZIP under `dist/`. To 
 
 ### Alpha diagnostics
 
-Every run writes a timestamped diagnostic log under `%LOCALAPPDATA%\Compositor\Logs`. It records startup/runtime information, command execution, project I/O, Avalonia trace output and unhandled exceptions. When reporting an alpha failure, reproduce it once and attach the newest `compositor-*.log` file from that folder.
+Every run writes a timestamped diagnostic log under `%LOCALAPPDATA%\Compositor\Logs`; **Help → Open Diagnostic Logs** opens that folder. It records build/runtime information, commands, tool and edit workflows, project I/O, Avalonia trace output and unhandled exceptions. The newest 20 logs are retained. When reporting an alpha failure, reproduce it once and attach the newest `compositor-*.log` file.
 
 ## Layout
 

@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using System.Diagnostics;
 using Compositor.App.Dialogs;
 using Compositor.App.Diagnostics;
 using Compositor.App.ViewModels;
@@ -24,6 +25,7 @@ public sealed partial class MainWindow : Window
         ImportCommand = new AsyncRelayCommand(ImportAsync, () => Vm.HasDocument, Unexpected, "File.Import");
         ExportPngCommand = new AsyncRelayCommand(() => ExportAsync(jpeg: false), () => Vm.HasDocument, Unexpected, "File.ExportPng");
         ExportJpegCommand = new AsyncRelayCommand(() => ExportAsync(jpeg: true), () => Vm.HasDocument, Unexpected, "File.ExportJpeg");
+        OpenLogsCommand = new RelayCommand(OpenLogs, name: "Help.OpenLogs");
         ExitCommand = new RelayCommand(Close, name: "File.Exit");
         InitializeComponent();
         DataContext = Vm;
@@ -65,7 +67,16 @@ public sealed partial class MainWindow : Window
     public AsyncRelayCommand ImportCommand { get; }
     public AsyncRelayCommand ExportPngCommand { get; }
     public AsyncRelayCommand ExportJpegCommand { get; }
+    public RelayCommand OpenLogsCommand { get; }
     public RelayCommand ExitCommand { get; }
+
+    private void OpenLogs()
+    {
+        Directory.CreateDirectory(AppLog.LogDirectory);
+        Process.Start(new ProcessStartInfo("explorer.exe", AppLog.LogDirectory) { UseShellExecute = true });
+        Status.Text = $"Logs: {AppLog.LogDirectory}";
+        AppLog.Info("Diagnostics", "Opened logs folder");
+    }
 
     private async Task NewCanvasAsync()
     {

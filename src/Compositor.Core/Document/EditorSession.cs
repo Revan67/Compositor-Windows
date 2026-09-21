@@ -1,6 +1,7 @@
 using Compositor.Core.Geometry;
 using Compositor.Core.Raster;
 using SkiaSharp;
+using System.Diagnostics;
 
 namespace Compositor.Core.Document;
 
@@ -48,26 +49,44 @@ public sealed partial class EditorSession
 
     public void Undo()
     {
+        var name = History.UndoName;
         if (CanUndo && History.Undo() is { } snapshot)
         {
             Restore(snapshot);
+            Trace.TraceInformation($"History undo: {name}; undo={History.UndoCount}; redo={History.CanRedo}");
         }
     }
 
     public void Redo()
     {
+        var name = History.RedoName;
         if (CanRedo && History.Redo() is { } snapshot)
         {
             Restore(snapshot);
+            Trace.TraceInformation($"History redo: {name}; undo={History.UndoCount}; redo={History.CanRedo}");
         }
     }
 
     /// <summary>Nestable transaction boundary; a complete gesture groups its edits under one name.</summary>
-    public void BeginEdit(string name) => History.Begin(name, Document, ActiveLayerId);
+    public void BeginEdit(string name)
+    {
+        if (!History.IsEditing)
+        {
+            Trace.TraceInformation($"Edit begin: {name}; activeLayer={ActiveLayerId}; layers={Layers.Count}");
+        }
+
+        History.Begin(name, Document, ActiveLayerId);
+    }
 
     public void EndEdit()
     {
+        var wasEditing = History.IsEditing;
+        var before = History.UndoCount;
         History.End(Document, ActiveLayerId);
+        if (wasEditing && !History.IsEditing)
+        {
+            Trace.TraceInformation($"Edit end: changed={History.UndoCount > before}; undo={History.UndoCount}; activeLayer={ActiveLayerId}; layers={Layers.Count}");
+        }
         Changed?.Invoke();
     }
 
