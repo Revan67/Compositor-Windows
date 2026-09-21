@@ -23,6 +23,8 @@ public sealed class EditorViewModel : ObservableObject
     private LayerRowViewModel? _selectedRow;
     private bool _syncingSelection;
     private EditorTool _tool = EditorTool.Move;
+    private Compositor.Core.Geometry.Rect? _marqueeDraft;
+    private Point? _marqueeStart;
 
     public EditorViewModel()
     {
@@ -30,6 +32,8 @@ public sealed class EditorViewModel : ObservableObject
         Session.DocumentResized += Fit;
         CropCommit = new RelayCommand(CommitCrop, () => Tool == EditorTool.Crop);
         CropCancel = new RelayCommand(CancelCrop, () => Tool == EditorTool.Crop);
+        SelectAll = new RelayCommand(SelectAllPixels, () => HasDocument, name: "Select.All");
+        Deselect = new RelayCommand(() => Session.SetSelection(null, "Deselect"), () => Session.Document?.Selection is not null, name: "Select.Deselect");
         Undo = new RelayCommand(Session.Undo, () => Session.CanUndo);
         Redo = new RelayCommand(Session.Redo, () => Session.CanRedo);
         AddLayer = new RelayCommand(Session.AddBlankLayer, () => Session.CanEditLayers);
@@ -78,6 +82,8 @@ public sealed class EditorViewModel : ObservableObject
     public RelayCommand FitToWindow { get; }
     public RelayCommand CropCommit { get; }
     public RelayCommand CropCancel { get; }
+    public RelayCommand SelectAll { get; }
+    public RelayCommand Deselect { get; }
 
     public EditorTool Tool
     {
@@ -92,9 +98,15 @@ public sealed class EditorViewModel : ObservableObject
                     Session.CancelCrop();
                 }
 
+                if (_tool == EditorTool.Marquee)
+                {
+                    CancelMarquee();
+                }
+
                 Set(ref _tool, value);
                 Raise(nameof(ShowsTransformControls));
                 Raise(nameof(ShowsCropControls));
+                Raise(nameof(ShowsSelectionControls));
                 Raise(nameof(OverlayGeometry));
             }
         }
@@ -117,6 +129,77 @@ public sealed class EditorViewModel : ObservableObject
     public bool ShowsTransformControls => Tool == EditorTool.Move && Session.CanTransform;
 
     public bool ShowsCropControls => Tool == EditorTool.Crop && HasDocument;
+
+    public bool ShowsSelectionControls => Tool == EditorTool.Marquee && HasDocument;
+
+    public Compositor.Core.Geometry.Rect? SelectionFrame => MarqueeDraft ?? Session.Document?.Selection?.Bounds;
+
+    public Compositor.Core.Geometry.Rect? MarqueeDraft
+    {
+        get => _marqueeDraft;
+        private set
+        {
+            if (Set(ref _marqueeDraft, value))
+            {
+                Raise(nameof(SelectionFrame));
+            }
+        }
+    }
+
+    public void BeginMarquee(Point point)
+    {
+        if (Session.Document is null)
+        {
+            return;
+        }
+
+        _marqueeStart = point;
+        MarqueeDraft = new Compositor.Core.Geometry.Rect(point.X, point.Y, 0, 0);
+    }
+
+    public void UpdateMarquee(Point point, bool square)
+    {
+        if (_marqueeStart is not { } start)
+        {
+            return;
+        }
+
+        var dx = point.X - start.X;
+        var dy = point.Y - start.Y;
+        if (square)
+        {
+            var side = Math.Max(Math.Abs(dx), Math.Abs(dy));
+            dx = Math.CopySign(side, dx == 0 ? 1 : dx);
+            dy = Math.CopySign(side, dy == 0 ? 1 : dy);
+        }
+
+        MarqueeDraft = Compositor.Core.Geometry.Rect.FromEdges(Math.Min(start.X, start.X + dx), Math.Min(start.Y, start.Y + dy), Math.Max(start.X, start.X + dx), Math.Max(start.Y, start.Y + dy));
+    }
+
+    public void CommitMarquee()
+    {
+        if (Session.Document is { } document && MarqueeDraft is { } draft)
+        {
+            Session.SetSelection(DocumentSelection.Rectangle(draft, document.Bounds), "Marquee");
+        }
+
+        _marqueeStart = null;
+        MarqueeDraft = null;
+    }
+
+    public void CancelMarquee()
+    {
+        _marqueeStart = null;
+        MarqueeDraft = null;
+    }
+
+    private void SelectAllPixels()
+    {
+        if (Session.Document is { } document)
+        {
+            Session.SetSelection(DocumentSelection.Rectangle(document.Bounds, document.Bounds), "Select All");
+        }
+    }
 
     public IReadOnlyList<string> CropRatioChoices => EditorSession.CropRatioChoices;
 
@@ -317,7 +400,7 @@ public sealed class EditorViewModel : ObservableObject
     private void OnSessionChanged()
     {
         RebuildRows();
-        foreach (var command in new[] { Undo, Redo, AddLayer, AddFolder, DuplicateLayer, DeleteLayer, MoveLayerUp, MoveLayerDown, GroupLayers, AddMask, ToggleMask, DeleteMask, ToggleClipping, ZoomIn, ZoomOut, ActualSize, FitToWindow, CropCommit, CropCancel })
+        foreach (var command in new[] { Undo, Redo, AddLayer, AddFolder, DuplicateLayer, DeleteLayer, MoveLayerUp, MoveLayerDown, GroupLayers, AddMask, ToggleMask, DeleteMask, ToggleClipping, ZoomIn, ZoomOut, ActualSize, FitToWindow, CropCommit, CropCancel, SelectAll, Deselect })
         {
             command.Refresh();
         }
@@ -337,6 +420,8 @@ public sealed class EditorViewModel : ObservableObject
         Raise(nameof(ShowsCropControls));
         Raise(nameof(CropRatioChoice));
         Raise(nameof(CropFrame));
+        Raise(nameof(ShowsSelectionControls));
+        Raise(nameof(SelectionFrame));
         Inspector.Refresh();
     }
 

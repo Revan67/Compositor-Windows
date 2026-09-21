@@ -25,7 +25,7 @@ Work in progress. The port is being built in phases; see [docs/windows-port-plan
 | 3 | Selections, brush and retouching tools, adjustments, filters, live shapes and editable text | |
 | 4 | Layer effects, native PSD/PSB import and export, Remove Background, platform polish and installer | |
 
-The Phase 2 shell can create, open, save, import and export documents; navigate the canvas; manage layers; and transform or crop content. Painting and selection tools are not implemented yet. The current solution has 145 automated tests.
+The Phase 2 shell can create, open, save, import and export documents; navigate the canvas; manage layers; transform or crop content; and create rectangular selections. Painting and the remaining selection tools are not implemented yet. The current solution has 147 automated tests.
 
 ## Building
 

@@ -5,6 +5,7 @@ public enum EditorTool
 {
     Move,
     Crop,
+    Marquee,
     Hand,
     Zoom,
 }

@@ -10,6 +10,7 @@ public enum LayerBlendMode
     Multiply,
     Screen,
     Overlay,
+    SoftLight,
     Darken,
     Lighten,
     Difference,
@@ -27,6 +28,7 @@ public static class LayerBlendModeExtensions
     {
         LayerBlendMode.ColorDodge => "Color Dodge",
         LayerBlendMode.ColorBurn => "Color Burn",
+        LayerBlendMode.SoftLight => "Soft Light",
         _ => mode.ToString(),
     };
 
@@ -36,6 +38,7 @@ public static class LayerBlendModeExtensions
         LayerBlendMode.Multiply => SKBlendMode.Multiply,
         LayerBlendMode.Screen => SKBlendMode.Screen,
         LayerBlendMode.Overlay => SKBlendMode.Overlay,
+        LayerBlendMode.SoftLight => SKBlendMode.SoftLight,
         LayerBlendMode.Darken => SKBlendMode.Darken,
         LayerBlendMode.Lighten => SKBlendMode.Lighten,
         LayerBlendMode.Difference => SKBlendMode.Difference,
@@ -114,6 +117,20 @@ public sealed record DocumentSelection(SKPath Path)
             var b = Path.Bounds;
             return Rect.FromEdges(b.Left, b.Top, b.Right, b.Bottom);
         }
+    }
+
+    /// <summary>A rectangular selection clipped to the document; null when the rectangle has no area.</summary>
+    public static DocumentSelection? Rectangle(Rect rect, Rect documentBounds, bool antialiased = false)
+    {
+        var clipped = rect.Intersection(documentBounds).Integral();
+        if (clipped.IsEmpty)
+        {
+            return null;
+        }
+
+        var path = new SKPath();
+        path.AddRect(clipped.ToSK());
+        return new DocumentSelection(path) { Antialiased = antialiased };
     }
 
     /// <summary>Grayscale coverage at document resolution (white = selected).</summary>

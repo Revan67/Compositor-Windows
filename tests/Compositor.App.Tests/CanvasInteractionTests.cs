@@ -66,4 +66,24 @@ public sealed class CanvasInteractionTests
         Assert.Null(viewModel.Session.CropRect);
         Assert.Equal((100, 80), (viewModel.Session.Document!.Width, viewModel.Session.Document.Height));
     }
+
+    [Fact]
+    public void MarqueeCommitsOnceAndIsUndoable()
+    {
+        var viewModel = new EditorViewModel();
+        viewModel.NewCanvas(100, 80);
+        var before = viewModel.Session.History.UndoCount;
+        viewModel.Tool = EditorTool.Marquee;
+        viewModel.BeginMarquee(new Point(10, 15));
+        viewModel.UpdateMarquee(new Point(60, 45), square: false);
+
+        Assert.Equal(new Rect(10, 15, 50, 30), viewModel.MarqueeDraft);
+        Assert.Equal(before, viewModel.Session.History.UndoCount);
+        viewModel.CommitMarquee();
+
+        Assert.Equal(new Rect(10, 15, 50, 30), viewModel.Session.Document!.Selection!.Bounds);
+        Assert.Equal(before + 1, viewModel.Session.History.UndoCount);
+        viewModel.Session.Undo();
+        Assert.Null(viewModel.Session.Document!.Selection);
+    }
 }

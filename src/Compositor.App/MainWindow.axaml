@@ -26,6 +26,8 @@
     <KeyBinding Gesture="Ctrl+OemMinus" Command="{Binding ZoomOut}" />
     <KeyBinding Gesture="Ctrl+0" Command="{Binding FitToWindow}" />
     <KeyBinding Gesture="Ctrl+1" Command="{Binding ActualSize}" />
+    <KeyBinding Gesture="Ctrl+A" Command="{Binding SelectAll}" />
+    <KeyBinding Gesture="Ctrl+D" Command="{Binding Deselect}" />
   </Window.KeyBindings>
 
   <DockPanel>
@@ -61,6 +63,10 @@
         <MenuItem Header="Enable / Disable Layer Mask" Command="{Binding ToggleMask}" />
         <MenuItem Header="Delete Layer Mask" Command="{Binding DeleteMask}" />
         <MenuItem Header="Create / Release Clipping Mask" Command="{Binding ToggleClipping}" />
+      </MenuItem>
+      <MenuItem Header="_Select">
+        <MenuItem Header="Select All" InputGesture="Ctrl+A" Command="{Binding SelectAll}" />
+        <MenuItem Header="Deselect" InputGesture="Ctrl+D" Command="{Binding Deselect}" />
       </MenuItem>
       <MenuItem Header="_View">
         <MenuItem Header="Zoom In" InputGesture="Ctrl+OemPlus" Command="{Binding ZoomIn}" />

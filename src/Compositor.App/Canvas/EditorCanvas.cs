@@ -33,6 +33,7 @@ public sealed class EditorCanvas : Control
     private static readonly IPen GuidePen = new Pen(new SolidColorBrush(Color.FromArgb(0xC0, 0xFF, 0x4C, 0xD6)), 1);
     private static readonly IBrush HandleFill = new SolidColorBrush(Colors.White);
     private static readonly IPen HandleStroke = new Pen(new SolidColorBrush(Color.FromRgb(0x2A, 0x6F, 0xC9)), 1);
+    private static readonly IPen SelectionPen = new Pen(Brushes.White, 1, dashStyle: new DashStyle([4, 4], 0));
 
     private EditorViewModel? _vm;
     private Point? _panStart;
@@ -72,7 +73,8 @@ public sealed class EditorCanvas : Control
     private void OnViewModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(EditorViewModel.Composite) or nameof(EditorViewModel.Viewport) or nameof(EditorViewModel.HasDocument)
-            or nameof(EditorViewModel.OverlayGeometry) or nameof(EditorViewModel.Tool) or nameof(EditorViewModel.CropFrame))
+            or nameof(EditorViewModel.OverlayGeometry) or nameof(EditorViewModel.Tool) or nameof(EditorViewModel.CropFrame)
+            or nameof(EditorViewModel.SelectionFrame))
         {
             InvalidateVisual();
         }
@@ -111,6 +113,19 @@ public sealed class EditorCanvas : Control
         context.Custom(new DrawOperation(bounds, composite, new SKRect((float)rect.MinX, (float)rect.MinY, (float)rect.MaxX, (float)rect.MaxY), _vm.Viewport.Zoom));
         DrawOverlay(context, document.Size);
         DrawCropFrame(context, document.Size);
+        DrawSelection(context, document.Size);
+    }
+
+    private void DrawSelection(DrawingContext context, CoreSize documentSize)
+    {
+        if (_vm?.SelectionFrame is not { } frame || frame.IsEmpty)
+        {
+            return;
+        }
+
+        var min = _vm.Viewport.ViewPoint(frame.Origin, documentSize);
+        var max = _vm.Viewport.ViewPoint(new CorePoint(frame.MaxX, frame.MaxY), documentSize);
+        context.DrawRectangle(null, SelectionPen, new Rect(min.X, min.Y, max.X - min.X, max.Y - min.Y));
     }
 
     private static readonly IBrush CropShade = new SolidColorBrush(Color.FromArgb(0x90, 0, 0, 0));
@@ -254,6 +269,14 @@ public sealed class EditorCanvas : Control
             return;
         }
 
+        if (_vm.Tool == EditorTool.Marquee)
+        {
+            _vm.BeginMarquee(_vm.Viewport.DocumentPoint(view, document.Size));
+            e.Pointer.Capture(this);
+            e.Handled = true;
+            return;
+        }
+
         if (_vm.Tool != EditorTool.Move)
         {
             return;
@@ -325,6 +348,12 @@ public sealed class EditorCanvas : Control
         }
 
         var view = e.GetPosition(this).ToCore();
+        if (_vm.Tool == EditorTool.Marquee && _vm.MarqueeDraft is not null)
+        {
+            _vm.UpdateMarquee(_vm.Viewport.DocumentPoint(view, document.Size), e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+            e.Handled = true;
+            return;
+        }
         if (_edit.Crop is { } cropDrag)
         {
             var docPoint = _vm.Viewport.DocumentPoint(view, document.Size);
@@ -413,6 +442,13 @@ public sealed class EditorCanvas : Control
             e.Pointer.Capture(null);
             e.Handled = true;
         }
+
+        if (_vm?.Tool == EditorTool.Marquee && _vm.MarqueeDraft is not null)
+        {
+            _vm.CommitMarquee();
+            e.Pointer.Capture(null);
+            e.Handled = true;
+        }
     }
 
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
@@ -422,6 +458,8 @@ public sealed class EditorCanvas : Control
         {
             _vm?.Session.CancelTransform();
         }
+
+        _vm?.CancelMarquee();
 
         _panStart = null;
     }
@@ -457,6 +495,12 @@ public sealed class EditorCanvas : Control
             case Key.Enter when _vm.Tool == EditorTool.Crop:
                 _edit.Complete();
                 _vm.CommitCrop();
+                break;
+            case Key.Escape when _vm.Tool == EditorTool.Marquee && _vm.MarqueeDraft is not null:
+                _vm.CancelMarquee();
+                break;
+            case Key.M when plain:
+                _vm.Tool = EditorTool.Marquee;
                 break;
             case Key.C when plain:
                 _vm.Tool = EditorTool.Crop;
