@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Compositor.Core.Document;
@@ -181,6 +182,7 @@ public static class ProjectStore
     /// </summary>
     internal static void Save(ProjectSnapshot snapshot, string path, Action<string>? afterWrite)
     {
+        Trace.TraceInformation($"Project save begin: {path}");
         ArgumentNullException.ThrowIfNull(snapshot);
         Validate(snapshot.Manifest);
         foreach (var layer in snapshot.Manifest.Layers)
@@ -231,6 +233,8 @@ public static class ProjectStore
             {
                 File.Move(temp, path);
             }
+
+            Trace.TraceInformation($"Project save complete: {path}");
         }
         finally
         {
@@ -253,6 +257,7 @@ public static class ProjectStore
 
     public static ProjectSnapshot Load(string path)
     {
+        Trace.TraceInformation($"Project load begin: {path}");
         using var archive = OpenArchive(path);
         var manifestEntry = archive.GetEntry("manifest.json") ?? throw new ProjectException(ProjectError.Invalid);
         if (manifestEntry.Length > MaxManifestBytes)
@@ -307,6 +312,7 @@ public static class ProjectStore
             }
         }
 
+        Trace.TraceInformation($"Project load complete: {path}; layers={manifest.Layers.Count}; canvas={manifest.Width}x{manifest.Height}");
         return new ProjectSnapshot(manifest, images, masks);
     }
 

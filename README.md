@@ -25,7 +25,7 @@ Work in progress. The port is being built in phases; see [docs/windows-port-plan
 | 3 | Selections, brush and retouching tools, adjustments, filters, live shapes and editable text | |
 | 4 | Layer effects, Remove Background (ONNX), GPU brush if needed, updater via GitHub Releases, installer | |
 
-The Phase 2 shell can create, open, save, import and export documents; navigate the canvas; manage layers; and transform or crop content. Painting and selection tools are not implemented yet. The current solution has 144 automated tests.
+The Phase 2 shell can create, open, save, import and export documents; navigate the canvas; manage layers; and transform or crop content. Painting and selection tools are not implemented yet. The current solution has 145 automated tests.
 
 ## Building
 
@@ -47,6 +47,10 @@ To restore, build and test a clean x64 checkout in one command:
 ```
 
 Add `-Publish` to also create a self-contained folder and ZIP under `dist/`. To publish a specific architecture directly, run `scripts\publish-windows.ps1 -Arch x64` or `-Arch arm64`. The publish smoke test verifies the executable, native DLL and required kernel exports; an arm64 native DLL must be load-tested on an arm64 host.
+
+### Alpha diagnostics
+
+Every run writes a timestamped diagnostic log under `%LOCALAPPDATA%\Compositor\Logs`. It records startup/runtime information, command execution, project I/O, Avalonia trace output and unhandled exceptions. When reporting an alpha failure, reproduce it once and attach the newest `compositor-*.log` file from that folder.
 
 ## Layout
 

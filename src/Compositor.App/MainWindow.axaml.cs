@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using Compositor.App.Dialogs;
+using Compositor.App.Diagnostics;
 using Compositor.App.ViewModels;
 using Compositor.Core.Project;
 
@@ -13,16 +14,19 @@ public sealed partial class MainWindow : Window
 
     public MainWindow()
     {
+        // Root-relative XAML bindings read these properties while InitializeComponent runs.
+        // They must exist before the visual tree is loaded or the menus retain null commands.
+        void Unexpected(Exception e) => Status.Text = $"Unexpected error — see {AppLog.CurrentPath}";
+        NewCanvasCommand = new AsyncRelayCommand(NewCanvasAsync, onError: Unexpected, name: "File.NewCanvas");
+        OpenCommand = new AsyncRelayCommand(OpenAsync, onError: Unexpected, name: "File.Open");
+        SaveCommand = new AsyncRelayCommand(() => SaveAsync(saveAs: false), () => Vm.HasDocument, Unexpected, "File.Save");
+        SaveAsCommand = new AsyncRelayCommand(() => SaveAsync(saveAs: true), () => Vm.HasDocument, Unexpected, "File.SaveAs");
+        ImportCommand = new AsyncRelayCommand(ImportAsync, () => Vm.HasDocument, Unexpected, "File.Import");
+        ExportPngCommand = new AsyncRelayCommand(() => ExportAsync(jpeg: false), () => Vm.HasDocument, Unexpected, "File.ExportPng");
+        ExportJpegCommand = new AsyncRelayCommand(() => ExportAsync(jpeg: true), () => Vm.HasDocument, Unexpected, "File.ExportJpeg");
+        ExitCommand = new RelayCommand(Close, name: "File.Exit");
         InitializeComponent();
         DataContext = Vm;
-        NewCanvasCommand = new RelayCommand(async () => await NewCanvasAsync());
-        OpenCommand = new RelayCommand(async () => await OpenAsync());
-        SaveCommand = new RelayCommand(async () => await SaveAsync(saveAs: false), () => Vm.HasDocument);
-        SaveAsCommand = new RelayCommand(async () => await SaveAsync(saveAs: true), () => Vm.HasDocument);
-        ImportCommand = new RelayCommand(async () => await ImportAsync(), () => Vm.HasDocument);
-        ExportPngCommand = new RelayCommand(async () => await ExportAsync(jpeg: false), () => Vm.HasDocument);
-        ExportJpegCommand = new RelayCommand(async () => await ExportAsync(jpeg: true), () => Vm.HasDocument);
-        ExitCommand = new RelayCommand(Close);
         Canvas.ImportFailed += failures => Status.Text = string.Join("  ·  ", failures);
         Vm.PropertyChanged += (_, e) =>
         {
@@ -54,13 +58,13 @@ public sealed partial class MainWindow : Window
 
     public EditorViewModel Vm { get; } = new();
 
-    public RelayCommand NewCanvasCommand { get; }
-    public RelayCommand OpenCommand { get; }
-    public RelayCommand SaveCommand { get; }
-    public RelayCommand SaveAsCommand { get; }
-    public RelayCommand ImportCommand { get; }
-    public RelayCommand ExportPngCommand { get; }
-    public RelayCommand ExportJpegCommand { get; }
+    public AsyncRelayCommand NewCanvasCommand { get; }
+    public AsyncRelayCommand OpenCommand { get; }
+    public AsyncRelayCommand SaveCommand { get; }
+    public AsyncRelayCommand SaveAsCommand { get; }
+    public AsyncRelayCommand ImportCommand { get; }
+    public AsyncRelayCommand ExportPngCommand { get; }
+    public AsyncRelayCommand ExportJpegCommand { get; }
     public RelayCommand ExitCommand { get; }
 
     private async Task NewCanvasAsync()
@@ -74,6 +78,11 @@ public sealed partial class MainWindow : Window
         {
             Vm.NewCanvas(size.Width, size.Height);
             Status.Text = $"New {size.Width}×{size.Height} canvas";
+            AppLog.Info("Document", $"Created canvas {size.Width}x{size.Height}");
+        }
+        else
+        {
+            AppLog.Info("Document", "New Canvas cancelled");
         }
     }
 
@@ -94,10 +103,12 @@ public sealed partial class MainWindow : Window
         {
             Vm.Open(path);
             Status.Text = $"Opened {Path.GetFileName(path)}";
+            AppLog.Info("Document", $"Opened project {path}");
         }
         catch (ProjectException e)
         {
             Status.Text = e.Message;
+            AppLog.Error("Document", $"Could not open project {path}", e);
         }
     }
 
@@ -124,10 +135,12 @@ public sealed partial class MainWindow : Window
         {
             Vm.Save(path);
             Status.Text = $"Saved {Path.GetFileName(path)}";
+            AppLog.Info("Document", $"Saved project {path}");
         }
         catch (Exception e) when (e is ProjectException or IOException or UnauthorizedAccessException)
         {
             Status.Text = e.Message;
+            AppLog.Error("Document", $"Could not save project {path}", e);
         }
     }
 
@@ -142,6 +155,7 @@ public sealed partial class MainWindow : Window
 
         var failures = Vm.Import(paths);
         Status.Text = failures.Count == 0 ? $"Imported {paths.Count} image{(paths.Count == 1 ? string.Empty : "s")}" : string.Join("  ·  ", failures);
+        AppLog.Info("Import", $"Requested={paths.Count}; succeeded={paths.Count - failures.Count}; failed={failures.Count}; files={string.Join(";", paths)}");
     }
 
     private async Task ExportAsync(bool jpeg)
@@ -163,10 +177,12 @@ public sealed partial class MainWindow : Window
         {
             await File.WriteAllBytesAsync(path, jpeg ? Vm.ExportJpeg(new JpegOptions()) : Vm.ExportPng());
             Status.Text = $"Exported {Path.GetFileName(path)}";
+            AppLog.Info("Export", $"Exported {(jpeg ? "JPEG" : "PNG")} {path}");
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             Status.Text = e.Message;
+            AppLog.Error("Export", $"Could not export to {path}", e);
         }
     }
 
