@@ -31,9 +31,14 @@ public sealed class EditorViewModel : ObservableObject
     private CanvasDocument? _brushPreviewDocument;
     private double _brushSize = 24;
     private double _brushOpacityPercent = 100;
+    private double _brushHardnessPercent = 100;
+    private SKColor _brushColor = SKColors.Black;
     private DateTimeOffset _brushStarted;
     private int _brushPointCount;
     private Compositor.Core.Geometry.Rect _brushBounds;
+    private Point _brushEndPoint;
+    private Point? _lastBrushPoint;
+    private Guid? _lastBrushLayerId;
 
     public EditorViewModel()
     {
@@ -162,19 +167,46 @@ public sealed class EditorViewModel : ObservableObject
         set => Set(ref _brushOpacityPercent, Math.Clamp(value, 1, 100));
     }
 
-    public bool BeginBrushStroke(Point point)
+    public double BrushHardnessPercent
+    {
+        get => _brushHardnessPercent;
+        set => Set(ref _brushHardnessPercent, Math.Clamp(value, 0, 100));
+    }
+
+    public string BrushColorHex
+    {
+        get => $"#{_brushColor.Red:X2}{_brushColor.Green:X2}{_brushColor.Blue:X2}";
+        set
+        {
+            if (SKColor.TryParse(value, out var color) && color != _brushColor)
+            {
+                _brushColor = color.WithAlpha(255);
+                Raise();
+            }
+        }
+    }
+
+    public bool BeginBrushStroke(Point point, bool straightLine = false)
     {
         if (Session.Document is not { } document || Session.ActiveLayer is not { IsGroup: false } layer || Session.IsMaskSelected)
         {
             return false;
         }
 
-        _brushStroke = new BrushStroke(layer, document.Selection, Tool == EditorTool.Eraser ? BrushMode.Erase : BrushMode.Paint, BrushSize, BrushOpacityPercent / 100, SKColors.Black);
+        _brushStroke = new BrushStroke(layer, document.Selection, Tool == EditorTool.Eraser ? BrushMode.Erase : BrushMode.Paint, BrushSize, BrushOpacityPercent / 100, _brushColor, BrushHardnessPercent / 100);
         _brushStarted = DateTimeOffset.UtcNow;
-        _brushPointCount = 1;
-        _brushBounds = new Compositor.Core.Geometry.Rect(point.X, point.Y, 0, 0);
+        var lineStart = straightLine && _lastBrushLayerId == layer.Id ? _lastBrushPoint : null;
+        _brushPointCount = lineStart is null ? 1 : 2;
+        _brushBounds = lineStart is { } start
+            ? Compositor.Core.Geometry.Rect.FromEdges(Math.Min(start.X, point.X), Math.Min(start.Y, point.Y), Math.Max(start.X, point.X), Math.Max(start.Y, point.Y))
+            : new Compositor.Core.Geometry.Rect(point.X, point.Y, 0, 0);
+        _brushEndPoint = point;
         Session.IsBusy = true;
-        AppLog.Info("Paint", $"Stroke begin: mode={_brushStroke.Mode}; layer={layer.Id}; size={BrushSize:0.##}; opacity={BrushOpacityPercent:0.##}; selection={document.Selection is not null}; x={point.X:0.##}; y={point.Y:0.##}");
+        AppLog.Info("Paint", $"Stroke begin: mode={_brushStroke.Mode}; layer={layer.Id}; size={BrushSize:0.##}; hardness={BrushHardnessPercent:0.##}; opacity={BrushOpacityPercent:0.##}; color={BrushColorHex}; straight={lineStart is not null}; selection={document.Selection is not null}; x={point.X:0.##}; y={point.Y:0.##}");
+        if (lineStart is { } previous)
+        {
+            _brushStroke.Add(previous);
+        }
         _brushStroke.Add(point);
         RefreshBrushPreview(document, layer);
         return true;
@@ -189,6 +221,7 @@ public sealed class EditorViewModel : ObservableObject
 
         stroke.Add(point);
         _brushPointCount++;
+        _brushEndPoint = point;
         _brushBounds = Compositor.Core.Geometry.Rect.FromEdges(Math.Min(_brushBounds.MinX, point.X), Math.Min(_brushBounds.MinY, point.Y), Math.Max(_brushBounds.MaxX, point.X), Math.Max(_brushBounds.MaxY, point.Y));
         RefreshBrushPreview(document, layer);
     }
@@ -205,6 +238,8 @@ public sealed class EditorViewModel : ObservableObject
         Session.IsBusy = false;
         _brushStroke = null;
         _brushPreviewDocument = null;
+        _lastBrushPoint = _brushEndPoint;
+        _lastBrushLayerId = stroke.LayerId;
         Session.ReplaceLayerAsset(stroke.LayerId, asset, stroke.Transform, mode == BrushMode.Erase ? "Erase Stroke" : "Brush Stroke");
         AppLog.Info("Paint", $"Stroke commit: mode={mode}; layer={stroke.LayerId}; points={_brushPointCount}; bounds={_brushBounds.X:0.##},{_brushBounds.Y:0.##},{_brushBounds.Width:0.##},{_brushBounds.Height:0.##}; elapsedMs={(DateTimeOffset.UtcNow - _brushStarted).TotalMilliseconds:0.##}");
     }

@@ -34,10 +34,13 @@ public sealed class EditorCanvas : Control
     private static readonly IBrush HandleFill = new SolidColorBrush(Colors.White);
     private static readonly IPen HandleStroke = new Pen(new SolidColorBrush(Color.FromRgb(0x2A, 0x6F, 0xC9)), 1);
     private static readonly IPen SelectionPen = new Pen(Brushes.White, 1, dashStyle: new DashStyle([4, 4], 0));
+    private static readonly IPen BrushCursorLight = new Pen(new SolidColorBrush(Color.FromArgb(0xE0, 0xFF, 0xFF, 0xFF)), 1);
+    private static readonly IPen BrushCursorDark = new Pen(new SolidColorBrush(Color.FromArgb(0xD0, 0, 0, 0)), 1);
 
     private EditorViewModel? _vm;
     private Point? _panStart;
     private bool _spaceHeld;
+    private Point? _brushCursor;
     private readonly CanvasEditInteraction _edit = new();
 
     public EditorCanvas()
@@ -74,7 +77,7 @@ public sealed class EditorCanvas : Control
     {
         if (e.PropertyName is nameof(EditorViewModel.Composite) or nameof(EditorViewModel.Viewport) or nameof(EditorViewModel.HasDocument)
             or nameof(EditorViewModel.OverlayGeometry) or nameof(EditorViewModel.Tool) or nameof(EditorViewModel.CropFrame)
-            or nameof(EditorViewModel.SelectionFrame))
+            or nameof(EditorViewModel.SelectionFrame) or nameof(EditorViewModel.BrushSize))
         {
             InvalidateVisual();
         }
@@ -114,6 +117,19 @@ public sealed class EditorCanvas : Control
         DrawOverlay(context, document.Size);
         DrawCropFrame(context, document.Size);
         DrawSelection(context, document.Size);
+        DrawBrushCursor(context);
+    }
+
+    private void DrawBrushCursor(DrawingContext context)
+    {
+        if (_vm?.Tool is not (EditorTool.Brush or EditorTool.Eraser) || _brushCursor is not { } center)
+        {
+            return;
+        }
+
+        var radius = Math.Max(2, _vm.BrushSize * _vm.Viewport.PointsPerPixel / 2);
+        context.DrawEllipse(null, BrushCursorDark, center, radius + 1, radius + 1);
+        context.DrawEllipse(null, BrushCursorLight, center, radius, radius);
     }
 
     private void DrawSelection(DrawingContext context, CoreSize documentSize)
@@ -279,7 +295,7 @@ public sealed class EditorCanvas : Control
 
         if (_vm.Tool is EditorTool.Brush or EditorTool.Eraser)
         {
-            if (_vm.BeginBrushStroke(_vm.Viewport.DocumentPoint(view, document.Size)))
+            if (_vm.BeginBrushStroke(_vm.Viewport.DocumentPoint(view, document.Size), e.KeyModifiers.HasFlag(KeyModifiers.Shift)))
             {
                 e.Pointer.Capture(this);
                 e.Handled = true;
@@ -358,6 +374,12 @@ public sealed class EditorCanvas : Control
         }
 
         var view = e.GetPosition(this).ToCore();
+        if (_vm.Tool is EditorTool.Brush or EditorTool.Eraser)
+        {
+            _brushCursor = e.GetPosition(this);
+            Cursor = new Cursor(StandardCursorType.Cross);
+            InvalidateVisual();
+        }
         if (_vm.Tool == EditorTool.Marquee && _vm.MarqueeDraft is not null)
         {
             _vm.UpdateMarquee(_vm.Viewport.DocumentPoint(view, document.Size), e.KeyModifiers.HasFlag(KeyModifiers.Shift));
@@ -429,6 +451,16 @@ public sealed class EditorCanvas : Control
         else if (!_spaceHeld)
         {
             Cursor = _vm.Tool == EditorTool.Hand ? new Cursor(StandardCursorType.Hand) : Cursor.Default;
+        }
+    }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        if (e.Pointer.Captured != this)
+        {
+            _brushCursor = null;
+            InvalidateVisual();
         }
     }
 

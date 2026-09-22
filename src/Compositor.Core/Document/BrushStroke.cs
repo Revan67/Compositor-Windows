@@ -20,7 +20,7 @@ public sealed class BrushStroke : IDisposable
     private Point? _last;
     private bool _committed;
 
-    public BrushStroke(ImageLayer layer, DocumentSelection? selection, BrushMode mode, double size, double opacity, SKColor color)
+    public BrushStroke(ImageLayer layer, DocumentSelection? selection, BrushMode mode, double size, double opacity, SKColor color, double hardness = 1)
     {
         if (layer.IsGroup)
         {
@@ -33,6 +33,7 @@ public sealed class BrushStroke : IDisposable
         Size = Math.Clamp(size, 1, 2_000);
         Opacity = Math.Clamp(opacity, 0, 1);
         Color = color;
+        Hardness = Math.Clamp(hardness, 0, 1);
         var width = layer.Asset?.Width ?? Math.Max(1, (int)Math.Round(layer.Transform.Size.Width));
         var height = layer.Asset?.Height ?? Math.Max(1, (int)Math.Round(layer.Transform.Size.Height));
         _pixels = Bitmaps.Create(width, height, mask: false);
@@ -47,6 +48,7 @@ public sealed class BrushStroke : IDisposable
     public double Size { get; }
     public double Opacity { get; }
     public SKColor Color { get; }
+    public double Hardness { get; }
     public SKBitmap Preview => _pixels;
     public LayerTransform Transform => _layer.Transform;
     public Guid LayerId => _layer.Id;
@@ -69,16 +71,24 @@ public sealed class BrushStroke : IDisposable
             + Math.Sqrt(Math.Pow(localY.X - localPoint.X, 2) + Math.Pow(localY.Y - localPoint.Y, 2))) / 2;
 
         var alpha = (byte)Math.Round(Opacity * 255);
+        // Keep the visible tip bounded to Size: the solid core grows from half to full diameter as
+        // hardness rises, while a three-sigma feather occupies the remaining radius.
+        var coreWidth = width * (0.5 + (0.5 * Hardness));
         using var paint = new SKPaint
         {
             IsAntialias = true,
             Style = SKPaintStyle.Stroke,
             StrokeCap = SKStrokeCap.Round,
             StrokeJoin = SKStrokeJoin.Round,
-            StrokeWidth = (float)width,
+            StrokeWidth = (float)Math.Max(1, coreWidth),
             Color = Mode == BrushMode.Paint ? Color.WithAlpha(alpha) : SKColors.Black.WithAlpha(alpha),
             BlendMode = Mode == BrushMode.Paint ? SKBlendMode.SrcOver : SKBlendMode.DstOut,
         };
+        var sigma = width * (1 - Hardness) / 12;
+        if (sigma > 0.05)
+        {
+            paint.MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, (float)sigma);
+        }
         if (_last is { } previous)
         {
             var localPrevious = documentToPixel.Apply(previous);
@@ -87,7 +97,7 @@ public sealed class BrushStroke : IDisposable
         else
         {
             paint.Style = SKPaintStyle.Fill;
-            canvas.DrawCircle((float)localPoint.X, (float)localPoint.Y, (float)(width / 2), paint);
+            canvas.DrawCircle((float)localPoint.X, (float)localPoint.Y, (float)Math.Max(0.5, coreWidth / 2), paint);
         }
 
         _last = point;

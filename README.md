@@ -7,7 +7,7 @@
 [![SkiaSharp 3.119](https://img.shields.io/badge/SkiaSharp-3.119-0D9488)](https://github.com/mono/SkiaSharp)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)](#building)
 [![Architectures](https://img.shields.io/badge/architectures-x64%20%7C%20arm64-0078D4)](#building)
-[![Tests](https://img.shields.io/badge/tests-152%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-155%20passing-brightgreen)](#testing)
 [![Status: broader alpha](https://img.shields.io/badge/status-broader%20alpha-orange)](#status)
 [![Last commit](https://img.shields.io/github/last-commit/Revan67/Compositor-Windows)](https://github.com/Revan67/Compositor-Windows/commits/main)
 [![Open issues](https://img.shields.io/github/issues/Revan67/Compositor-Windows)](https://github.com/Revan67/Compositor-Windows/issues)
@@ -29,7 +29,7 @@ This is a broader alpha, not a release. The project is suitable for workflow tes
 | 3 | Selections, brush and retouching tools, adjustments, filters, live shapes and editable text | In progress: marquee, brush and eraser working |
 | 4 | Layer effects, native PSD/PSB import and export, Remove Background, platform polish and installer | Planned |
 
-The editor can create, open, save, import and export documents; navigate the canvas; manage layers; transform or crop content; create rectangular selections; and paint or erase on transformed layers with live preview, selection clipping and single-step undo. Diagnostics record reconstructable workflows for alpha reports. The current solution has 152 automated tests.
+The editor can create, open, save, import and export documents; navigate the canvas; manage layers; transform or crop content; create rectangular selections; and paint or erase on transformed layers with live preview, color/size/hardness/opacity controls, selection clipping and single-step undo. Diagnostics record reconstructable workflows for alpha reports.
 
 ## Building
 

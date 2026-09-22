@@ -87,4 +87,19 @@ public sealed class CanvasInteractionTests
         Assert.Null(viewModel.Session.Document!.Selection);
     }
 
+    [Fact]
+    public void BrushControlsValidateColorAndClampHardness()
+    {
+        var viewModel = new EditorViewModel
+        {
+            BrushColorHex = "#3366CC",
+            BrushHardnessPercent = 140,
+        };
+
+        Assert.Equal("#3366CC", viewModel.BrushColorHex);
+        Assert.Equal(100, viewModel.BrushHardnessPercent);
+        viewModel.BrushColorHex = "not-a-color";
+        Assert.Equal("#3366CC", viewModel.BrushColorHex);
+    }
+
 }

@@ -53,7 +53,11 @@
       <NumericUpDown Value="{Binding BrushSize}" Minimum="1" Maximum="2000" FormatString="0.#" />
       <TextBlock Classes="label" Text="Opacity %" />
       <NumericUpDown Value="{Binding BrushOpacityPercent}" Minimum="1" Maximum="100" FormatString="0" />
-      <TextBlock Classes="label" Text="Black foreground · B brush · E eraser · selection clips strokes" />
+      <TextBlock Classes="label" Text="Hardness %" />
+      <NumericUpDown Value="{Binding BrushHardnessPercent}" Minimum="0" Maximum="100" FormatString="0" />
+      <TextBlock Classes="label" Text="Color" />
+      <TextBox Text="{Binding BrushColorHex}" Width="82" FontFamily="Consolas" />
+      <TextBlock Classes="label" Text="Shift-click draws a line · selection clips strokes" />
     </StackPanel>
   </Grid>
 </UserControl>

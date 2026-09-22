@@ -69,4 +69,31 @@ public sealed class BrushStrokeTests
         session.Undo();
         Assert.Null(session.ActiveLayer!.Asset);
     }
+
+    [Fact]
+    public void SoftBrushHasAFeatheredOpacityProfile()
+    {
+        var layer = new ImageLayer("Layer", new Size(40, 40));
+        using var stroke = new BrushStroke(layer, null, BrushMode.Paint, 18, 1, SKColors.Green, hardness: 0);
+        stroke.Add(new Point(20, 20));
+        var pixels = stroke.Commit("Layer").Image;
+
+        var center = pixels.GetPixel(20, 20).Alpha;
+        var feather = pixels.GetPixel(27, 20).Alpha;
+        Assert.InRange(center, 1, 255);
+        Assert.InRange(feather, 1, center - 1);
+        Assert.True(pixels.GetPixel(20, 20).Green > 0);
+        Assert.Equal(0, pixels.GetPixel(20, 20).Red);
+    }
+
+    [Fact]
+    public void BrushSettingsAreClamped()
+    {
+        var layer = new ImageLayer("Layer", new Size(10, 10));
+        using var stroke = new BrushStroke(layer, null, BrushMode.Paint, 9_000, 4, SKColors.Blue, hardness: -2);
+
+        Assert.Equal(2_000, stroke.Size);
+        Assert.Equal(1, stroke.Opacity);
+        Assert.Equal(0, stroke.Hardness);
+    }
 }
