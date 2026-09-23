@@ -14,7 +14,16 @@ public sealed class App : Application
         {
             var window = new MainWindow();
             desktop.MainWindow = window;
-            window.Opened += (_, _) => window.OpenFromCommandLine(desktop.Args ?? []);
+            window.Opened += async (_, _) =>
+            {
+                var args = desktop.Args ?? [];
+                if (args.Length == 0 && await window.RecoverIfAvailableAsync())
+                {
+                    return;
+                }
+
+                window.OpenFromCommandLine(args);
+            };
         }
 
         base.OnFrameworkInitializationCompleted();

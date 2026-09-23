@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Compositor.Core.Document;
@@ -173,7 +174,15 @@ public static class ProjectStore
     public static string MaskFileName(Guid id) => $"{id:D}.mask.png";
 
     public static void Save(ProjectSnapshot snapshot, string path)
+        => Save(snapshot, path, afterWrite: null);
+
+    /// <summary>
+    /// Test seam used to damage or lock the completed temporary archive before validation. Production
+    /// callers always use <see cref="Save(ProjectSnapshot, string)"/>.
+    /// </summary>
+    internal static void Save(ProjectSnapshot snapshot, string path, Action<string>? afterWrite)
     {
+        Trace.TraceInformation($"Project save begin: {path}");
         ArgumentNullException.ThrowIfNull(snapshot);
         Validate(snapshot.Manifest);
         foreach (var layer in snapshot.Manifest.Layers)
@@ -211,7 +220,21 @@ public static class ProjectStore
                 }
             }
 
-            File.Move(temp, path, overwrite: true);
+            afterWrite?.Invoke(temp);
+            ValidateWrittenArchive(temp);
+
+            // File.Replace is an atomic same-volume replacement on Windows. A new destination has
+            // nothing to replace, so the first save is an atomic rename of the sibling temp file.
+            if (File.Exists(path))
+            {
+                File.Replace(temp, path, destinationBackupFileName: null);
+            }
+            else
+            {
+                File.Move(temp, path);
+            }
+
+            Trace.TraceInformation($"Project save complete: {path}");
         }
         finally
         {
@@ -222,8 +245,19 @@ public static class ProjectStore
         }
     }
 
+    private static void ValidateWrittenArchive(string path)
+    {
+        var written = Load(path);
+        foreach (var asset in written.Images.Values.Concat(written.Masks.Values))
+        {
+            asset.Image.Dispose();
+            asset.Thumbnail.Dispose();
+        }
+    }
+
     public static ProjectSnapshot Load(string path)
     {
+        Trace.TraceInformation($"Project load begin: {path}");
         using var archive = OpenArchive(path);
         var manifestEntry = archive.GetEntry("manifest.json") ?? throw new ProjectException(ProjectError.Invalid);
         if (manifestEntry.Length > MaxManifestBytes)
@@ -278,6 +312,7 @@ public static class ProjectStore
             }
         }
 
+        Trace.TraceInformation($"Project load complete: {path}; layers={manifest.Layers.Count}; canvas={manifest.Width}x{manifest.Height}");
         return new ProjectSnapshot(manifest, images, masks);
     }
 

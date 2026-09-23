@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using Avalonia.Media.Imaging;
+using Compositor.App.Diagnostics;
 using Compositor.Core.Document;
 using Compositor.Core.Geometry;
 using Compositor.Core.Project;
+using Compositor.Core.Raster;
 using Compositor.Core.Rendering;
 using SkiaSharp;
 
@@ -23,23 +25,46 @@ public sealed class EditorViewModel : ObservableObject
     private LayerRowViewModel? _selectedRow;
     private bool _syncingSelection;
     private EditorTool _tool = EditorTool.Move;
+    private Compositor.Core.Geometry.Rect? _marqueeDraft;
+    private Point? _marqueeStart;
+    private SelectionCombineMode _marqueeMode;
+    private Point? _selectionMoveStart;
+    private DocumentSelection? _selectionMoveOriginal;
+    private DocumentSelection? _selectionPreview;
+    private BrushStroke? _brushStroke;
+    private CanvasDocument? _brushPreviewDocument;
+    private double _brushSize = 24;
+    private double _brushOpacityPercent = 100;
+    private double _brushHardnessPercent = 100;
+    private SKColor _brushColor = SKColors.Black;
+    private DateTimeOffset _brushStarted;
+    private int _brushPointCount;
+    private Compositor.Core.Geometry.Rect _brushBounds;
+    private Point _brushEndPoint;
+    private Point? _lastBrushPoint;
+    private Guid? _lastBrushLayerId;
 
     public EditorViewModel()
     {
         Session.Changed += OnSessionChanged;
-        Undo = new RelayCommand(Session.Undo, () => Session.CanUndo);
-        Redo = new RelayCommand(Session.Redo, () => Session.CanRedo);
-        AddLayer = new RelayCommand(Session.AddBlankLayer, () => Session.CanEditLayers);
-        AddFolder = new RelayCommand(Session.AddGroup, () => Session.CanEditLayers);
-        DuplicateLayer = new RelayCommand(Session.DuplicateActiveLayer, () => Session.ActiveLayer is { IsGroup: false });
-        DeleteLayer = new RelayCommand(Session.DeleteSelectedLayers, () => Session.ActiveLayer is not null);
-        MoveLayerUp = new RelayCommand(() => Session.MoveActiveLayer(1), () => Session.CanMoveActiveLayer(1));
-        MoveLayerDown = new RelayCommand(() => Session.MoveActiveLayer(-1), () => Session.CanMoveActiveLayer(-1));
-        GroupLayers = new RelayCommand(Session.GroupSelectedLayers, () => Session.SelectedLayerIds.Count > 0);
-        AddMask = new RelayCommand(() => Session.AddLayerMask(), () => Session.ActiveLayer is { Mask: null });
-        ToggleMask = new RelayCommand(Session.ToggleLayerMask, () => Session.ActiveLayer?.Mask is not null);
-        DeleteMask = new RelayCommand(Session.DeleteLayerMask, () => Session.ActiveLayer?.Mask is not null);
-        ToggleClipping = new RelayCommand(() => Session.ToggleClippingMask(Session.ActiveLayerId!.Value), () => Session.ActiveLayerId is { } id && Session.CanToggleClippingMask(id));
+        Session.DocumentResized += Fit;
+        CropCommit = new RelayCommand(CommitCrop, () => Tool == EditorTool.Crop, "Crop.Commit");
+        CropCancel = new RelayCommand(CancelCrop, () => Tool == EditorTool.Crop, "Crop.Cancel");
+        SelectAll = new RelayCommand(SelectAllPixels, () => HasDocument, name: "Select.All");
+        Deselect = new RelayCommand(() => Session.SetSelection(null, "Deselect"), () => Session.Document?.Selection is not null, name: "Select.Deselect");
+        Undo = new RelayCommand(Session.Undo, () => Session.CanUndo, "Edit.Undo");
+        Redo = new RelayCommand(Session.Redo, () => Session.CanRedo, "Edit.Redo");
+        AddLayer = new RelayCommand(Session.AddBlankLayer, () => Session.CanEditLayers, "Layer.Add");
+        AddFolder = new RelayCommand(Session.AddGroup, () => Session.CanEditLayers, "Layer.AddFolder");
+        DuplicateLayer = new RelayCommand(Session.DuplicateActiveLayer, () => Session.ActiveLayer is { IsGroup: false }, "Layer.Duplicate");
+        DeleteLayer = new RelayCommand(Session.DeleteSelectedLayers, () => Session.ActiveLayer is not null, "Layer.Delete");
+        MoveLayerUp = new RelayCommand(() => Session.MoveActiveLayer(1), () => Session.CanMoveActiveLayer(1), "Layer.MoveUp");
+        MoveLayerDown = new RelayCommand(() => Session.MoveActiveLayer(-1), () => Session.CanMoveActiveLayer(-1), "Layer.MoveDown");
+        GroupLayers = new RelayCommand(Session.GroupSelectedLayers, () => Session.SelectedLayerIds.Count > 0, "Layer.Group");
+        AddMask = new RelayCommand(() => Session.AddLayerMask(), () => Session.ActiveLayer is { Mask: null }, "Layer.AddMask");
+        ToggleMask = new RelayCommand(Session.ToggleLayerMask, () => Session.ActiveLayer?.Mask is not null, "Layer.ToggleMask");
+        DeleteMask = new RelayCommand(Session.DeleteLayerMask, () => Session.ActiveLayer?.Mask is not null, "Layer.DeleteMask");
+        ToggleClipping = new RelayCommand(() => Session.ToggleClippingMask(Session.ActiveLayerId!.Value), () => Session.ActiveLayerId is { } id && Session.CanToggleClippingMask(id), "Layer.ToggleClipping");
         ZoomIn = new RelayCommand(() => ZoomBy(2), () => Session.Document is not null);
         ZoomOut = new RelayCommand(() => ZoomBy(0.5), () => Session.Document is not null);
         ActualSize = new RelayCommand(() => SetZoom(1), () => Session.Document is not null);
@@ -73,6 +98,10 @@ public sealed class EditorViewModel : ObservableObject
     public RelayCommand ZoomOut { get; }
     public RelayCommand ActualSize { get; }
     public RelayCommand FitToWindow { get; }
+    public RelayCommand CropCommit { get; }
+    public RelayCommand CropCancel { get; }
+    public RelayCommand SelectAll { get; }
+    public RelayCommand Deselect { get; }
 
     public EditorTool Tool
     {
@@ -81,9 +110,29 @@ public sealed class EditorViewModel : ObservableObject
         {
             if (_tool != value)
             {
+                AppLog.Info("Tool", $"Changed {_tool} -> {value}");
                 Session.CommitTransform();
+                if (_tool == EditorTool.Crop)
+                {
+                    Session.CancelCrop();
+                }
+
+                if (_tool == EditorTool.Marquee)
+                {
+                    CancelMarquee();
+                }
+
+                if (_tool is EditorTool.Brush or EditorTool.Eraser)
+                {
+                    CancelBrushStroke();
+                }
+
                 Set(ref _tool, value);
                 Raise(nameof(ShowsTransformControls));
+                Raise(nameof(ShowsCropControls));
+                Raise(nameof(ShowsSelectionControls));
+                Raise(nameof(ShowsBrushControls));
+                Raise(nameof(OverlayGeometry));
             }
         }
     }
@@ -103,6 +152,269 @@ public sealed class EditorViewModel : ObservableObject
     }
 
     public bool ShowsTransformControls => Tool == EditorTool.Move && Session.CanTransform;
+
+    public bool ShowsCropControls => Tool == EditorTool.Crop && HasDocument;
+
+    public bool ShowsSelectionControls => Tool == EditorTool.Marquee && HasDocument;
+
+    public bool ShowsBrushControls => Tool is EditorTool.Brush or EditorTool.Eraser && HasDocument;
+
+    public double BrushSize
+    {
+        get => _brushSize;
+        set => Set(ref _brushSize, Math.Clamp(value, 1, 2_000));
+    }
+
+    public double BrushOpacityPercent
+    {
+        get => _brushOpacityPercent;
+        set => Set(ref _brushOpacityPercent, Math.Clamp(value, 1, 100));
+    }
+
+    public double BrushHardnessPercent
+    {
+        get => _brushHardnessPercent;
+        set => Set(ref _brushHardnessPercent, Math.Clamp(value, 0, 100));
+    }
+
+    public string BrushColorHex
+    {
+        get => $"#{_brushColor.Red:X2}{_brushColor.Green:X2}{_brushColor.Blue:X2}";
+        set
+        {
+            if (SKColor.TryParse(value, out var color) && color != _brushColor)
+            {
+                _brushColor = color.WithAlpha(255);
+                Raise();
+            }
+        }
+    }
+
+    public bool BeginBrushStroke(Point point, bool straightLine = false)
+    {
+        if (Session.Document is not { } document || Session.ActiveLayer is not { IsGroup: false } layer || Session.IsMaskSelected)
+        {
+            return false;
+        }
+
+        _brushStroke = new BrushStroke(layer, document.Selection, Tool == EditorTool.Eraser ? BrushMode.Erase : BrushMode.Paint, BrushSize, BrushOpacityPercent / 100, _brushColor, BrushHardnessPercent / 100);
+        _brushStarted = DateTimeOffset.UtcNow;
+        var lineStart = straightLine && _lastBrushLayerId == layer.Id ? _lastBrushPoint : null;
+        _brushPointCount = lineStart is null ? 1 : 2;
+        _brushBounds = lineStart is { } start
+            ? Compositor.Core.Geometry.Rect.FromEdges(Math.Min(start.X, point.X), Math.Min(start.Y, point.Y), Math.Max(start.X, point.X), Math.Max(start.Y, point.Y))
+            : new Compositor.Core.Geometry.Rect(point.X, point.Y, 0, 0);
+        _brushEndPoint = point;
+        Session.IsBusy = true;
+        AppLog.Info("Paint", $"Stroke begin: mode={_brushStroke.Mode}; layer={layer.Id}; size={BrushSize:0.##}; hardness={BrushHardnessPercent:0.##}; opacity={BrushOpacityPercent:0.##}; color={BrushColorHex}; straight={lineStart is not null}; selection={document.Selection is not null}; x={point.X:0.##}; y={point.Y:0.##}");
+        if (lineStart is { } previous)
+        {
+            _brushStroke.Add(previous);
+        }
+        _brushStroke.Add(point);
+        RefreshBrushPreview(document, layer);
+        return true;
+    }
+
+    public void ContinueBrushStroke(Point point)
+    {
+        if (_brushStroke is not { } stroke || Session.Document is not { } document || Session.ActiveLayer is not { } layer)
+        {
+            return;
+        }
+
+        stroke.Add(point);
+        _brushPointCount++;
+        _brushEndPoint = point;
+        _brushBounds = Compositor.Core.Geometry.Rect.FromEdges(Math.Min(_brushBounds.MinX, point.X), Math.Min(_brushBounds.MinY, point.Y), Math.Max(_brushBounds.MaxX, point.X), Math.Max(_brushBounds.MaxY, point.Y));
+        RefreshBrushPreview(document, layer);
+    }
+
+    public void CommitBrushStroke()
+    {
+        if (_brushStroke is not { } stroke)
+        {
+            return;
+        }
+
+        var mode = stroke.Mode;
+        var asset = stroke.Commit(Session.ActiveLayer?.Name ?? "Layer");
+        Session.IsBusy = false;
+        _brushStroke = null;
+        _brushPreviewDocument = null;
+        _lastBrushPoint = _brushEndPoint;
+        _lastBrushLayerId = stroke.LayerId;
+        Session.ReplaceLayerAsset(stroke.LayerId, asset, stroke.Transform, mode == BrushMode.Erase ? "Erase Stroke" : "Brush Stroke");
+        AppLog.Info("Paint", $"Stroke commit: mode={mode}; layer={stroke.LayerId}; points={_brushPointCount}; bounds={_brushBounds.X:0.##},{_brushBounds.Y:0.##},{_brushBounds.Width:0.##},{_brushBounds.Height:0.##}; elapsedMs={(DateTimeOffset.UtcNow - _brushStarted).TotalMilliseconds:0.##}");
+    }
+
+    public void CancelBrushStroke()
+    {
+        if (_brushStroke is null)
+        {
+            return;
+        }
+
+        _brushStroke.Dispose();
+        AppLog.Info("Paint", $"Stroke cancelled: points={_brushPointCount}; elapsedMs={(DateTimeOffset.UtcNow - _brushStarted).TotalMilliseconds:0.##}");
+        _brushStroke = null;
+        _brushPreviewDocument = null;
+        Session.IsBusy = false;
+        _compositeOf = null;
+        Raise(nameof(Composite));
+    }
+
+    private void RefreshBrushPreview(CanvasDocument document, ImageLayer layer)
+    {
+        var previewAsset = new ImportedImage(_brushStroke!.Preview, _brushStroke.Preview, layer.Name);
+        _brushPreviewDocument = document with { Layers = document.Layers.Select(item => item.Id == layer.Id ? item with { Asset = previewAsset } : item).ToList() };
+        _compositeOf = null;
+        Raise(nameof(Composite));
+    }
+
+    public Compositor.Core.Geometry.Rect? SelectionFrame => MarqueeDraft ?? Session.Document?.Selection?.Bounds;
+
+    public DocumentSelection? DisplayedSelection => _selectionPreview ?? Session.Document?.Selection;
+
+    public bool IsSelectionGestureActive => MarqueeDraft is not null || _selectionMoveStart is not null;
+
+    public Compositor.Core.Geometry.Rect? MarqueeDraft
+    {
+        get => _marqueeDraft;
+        private set
+        {
+            if (Set(ref _marqueeDraft, value))
+            {
+                Raise(nameof(SelectionFrame));
+            }
+        }
+    }
+
+    public void BeginMarquee(Point point, SelectionCombineMode mode = SelectionCombineMode.Replace)
+    {
+        if (Session.Document is null)
+        {
+            return;
+        }
+
+        if (mode == SelectionCombineMode.Replace && Session.Document.Selection is { } selection && selection.Path.Contains((float)point.X, (float)point.Y))
+        {
+            _selectionMoveStart = point;
+            _selectionMoveOriginal = selection;
+            _selectionPreview = selection;
+            Raise(nameof(DisplayedSelection));
+            Raise(nameof(IsSelectionGestureActive));
+            AppLog.Info("Selection", $"Move begin: x={point.X:0.##}; y={point.Y:0.##}");
+            return;
+        }
+
+        _marqueeStart = point;
+        _marqueeMode = mode;
+        MarqueeDraft = new Compositor.Core.Geometry.Rect(point.X, point.Y, 0, 0);
+        Raise(nameof(IsSelectionGestureActive));
+        AppLog.Info("Selection", $"Marquee begin: x={point.X:0.##}; y={point.Y:0.##}");
+    }
+
+    public void UpdateMarquee(Point point, bool square)
+    {
+        if (_selectionMoveStart is { } moveStart && _selectionMoveOriginal is { } original && Session.Document is { } document)
+        {
+            _selectionPreview = original.Translated(point.X - moveStart.X, point.Y - moveStart.Y, document.Bounds);
+            Raise(nameof(DisplayedSelection));
+            return;
+        }
+
+        if (_marqueeStart is not { } start)
+        {
+            return;
+        }
+
+        var dx = point.X - start.X;
+        var dy = point.Y - start.Y;
+        if (square)
+        {
+            var side = Math.Max(Math.Abs(dx), Math.Abs(dy));
+            dx = Math.CopySign(side, dx == 0 ? 1 : dx);
+            dy = Math.CopySign(side, dy == 0 ? 1 : dy);
+        }
+
+        MarqueeDraft = Compositor.Core.Geometry.Rect.FromEdges(Math.Min(start.X, start.X + dx), Math.Min(start.Y, start.Y + dy), Math.Max(start.X, start.X + dx), Math.Max(start.Y, start.Y + dy));
+    }
+
+    public void CommitMarquee()
+    {
+        if (_selectionMoveStart is not null)
+        {
+            Session.SetSelection(_selectionPreview, "Move Selection");
+            AppLog.Info("Selection", $"Move commit: bounds={_selectionPreview?.Bounds}");
+        }
+        else if (Session.Document is { } document && MarqueeDraft is { } draft)
+        {
+            var shape = DocumentSelection.Rectangle(draft, document.Bounds);
+            Session.SetSelection(DocumentSelection.Combine(document.Selection, shape, _marqueeMode), $"Marquee {_marqueeMode}");
+            AppLog.Info("Selection", $"Marquee commit: mode={_marqueeMode}; x={draft.X:0.##}; y={draft.Y:0.##}; width={draft.Width:0.##}; height={draft.Height:0.##}");
+        }
+
+        _marqueeStart = null;
+        MarqueeDraft = null;
+        ClearSelectionMove();
+    }
+
+    public void CancelMarquee()
+    {
+        if (IsSelectionGestureActive)
+        {
+            AppLog.Info("Selection", "Marquee cancelled");
+        }
+
+        _marqueeStart = null;
+        MarqueeDraft = null;
+        ClearSelectionMove();
+    }
+
+    public void NudgeSelection(double dx, double dy)
+    {
+        if (Session.Document is { Selection: { } selection } document)
+        {
+            Session.SetSelection(selection.Translated(dx, dy, document.Bounds), "Move Selection");
+        }
+    }
+
+    private void ClearSelectionMove()
+    {
+        _selectionMoveStart = null;
+        _selectionMoveOriginal = null;
+        _selectionPreview = null;
+        Raise(nameof(DisplayedSelection));
+        Raise(nameof(IsSelectionGestureActive));
+    }
+
+    private void SelectAllPixels()
+    {
+        if (Session.Document is { } document)
+        {
+            Session.SetSelection(DocumentSelection.Rectangle(document.Bounds, document.Bounds), "Select All");
+        }
+    }
+
+    public IReadOnlyList<string> CropRatioChoices => EditorSession.CropRatioChoices;
+
+    public string CropRatioChoice
+    {
+        get => Session.CropRatioChoice;
+        set => Session.SetCropRatioChoice(value);
+    }
+
+    /// <summary>The crop frame while the Crop tool is active: what was dragged, else the whole canvas.</summary>
+    public Compositor.Core.Geometry.Rect? CropFrame => Tool == EditorTool.Crop && Session.Document is { } d ? Session.CropRect ?? d.Bounds : null;
+
+    public void CommitCrop()
+    {
+        Session.CommitCrop();
+        Tool = EditorTool.Move;
+    }
+
+    public void CancelCrop() => Tool = EditorTool.Move;
 
     public CanvasViewport Viewport
     {
@@ -180,7 +492,7 @@ public sealed class EditorViewModel : ObservableObject
     {
         get
         {
-            if (Session.DisplayedDocument is not { } document)
+            if ((_brushPreviewDocument ?? Session.DisplayedDocument) is not { } document)
             {
                 return null;
             }
@@ -213,6 +525,13 @@ public sealed class EditorViewModel : ObservableObject
         var snapshot = ProjectStore.Load(path);
         Session.OpenDocument(snapshot.ToDocument(), snapshot.Manifest.ActiveLayerId);
         Path = path;
+        Fit();
+    }
+
+    public void Recover(ProjectSnapshot snapshot)
+    {
+        Session.OpenDocument(snapshot.ToDocument(), snapshot.Manifest.ActiveLayerId, recovered: true);
+        Path = null;
         Fit();
     }
 
@@ -284,7 +603,7 @@ public sealed class EditorViewModel : ObservableObject
     private void OnSessionChanged()
     {
         RebuildRows();
-        foreach (var command in new[] { Undo, Redo, AddLayer, AddFolder, DuplicateLayer, DeleteLayer, MoveLayerUp, MoveLayerDown, GroupLayers, AddMask, ToggleMask, DeleteMask, ToggleClipping, ZoomIn, ZoomOut, ActualSize, FitToWindow })
+        foreach (var command in new[] { Undo, Redo, AddLayer, AddFolder, DuplicateLayer, DeleteLayer, MoveLayerUp, MoveLayerDown, GroupLayers, AddMask, ToggleMask, DeleteMask, ToggleClipping, ZoomIn, ZoomOut, ActualSize, FitToWindow, CropCommit, CropCancel, SelectAll, Deselect })
         {
             command.Refresh();
         }
@@ -301,6 +620,12 @@ public sealed class EditorViewModel : ObservableObject
         Raise(nameof(ZoomPercent));
         Raise(nameof(OverlayGeometry));
         Raise(nameof(ShowsTransformControls));
+        Raise(nameof(ShowsCropControls));
+        Raise(nameof(CropRatioChoice));
+        Raise(nameof(CropFrame));
+        Raise(nameof(ShowsSelectionControls));
+        Raise(nameof(ShowsBrushControls));
+        Raise(nameof(SelectionFrame));
         Inspector.Refresh();
     }
 

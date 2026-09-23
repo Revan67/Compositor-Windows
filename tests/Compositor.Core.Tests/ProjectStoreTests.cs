@@ -101,6 +101,25 @@ public sealed class ProjectStoreTests : IDisposable
     }
 
     [Fact]
+    public void PaintedLayerSurvivesSaveAndReopen()
+    {
+        var session = new EditorSession();
+        session.CreateDocument(48, 32, emptyLayer: true);
+        var layer = session.ActiveLayer!;
+        using var stroke = new BrushStroke(layer, null, BrushMode.Paint, 9, 0.75, SKColors.Magenta);
+        stroke.Add(new Point(8, 8));
+        stroke.Add(new Point(36, 24));
+        session.ReplaceLayerAsset(layer.Id, stroke.Commit(layer.Name), layer.Transform, "Brush Stroke");
+        var before = session.ActiveLayer!.Asset!.Image;
+        var path = PathFor("painted.comp");
+
+        ProjectStore.Save(ProjectSnapshot.From(session.Document!, session.ActiveLayerId), path);
+        var reopened = ProjectStore.Load(path).ToDocument();
+
+        Assert.True(Bitmaps.BytesEqual(before, reopened.Layers.Single().Asset!.Image));
+    }
+
+    [Fact]
     public void ManifestOmitsDefaultsAndUsesDocumentedNames()
     {
         var (document, _) = Everything();
@@ -257,6 +276,40 @@ public sealed class ProjectStoreTests : IDisposable
         ProjectStore.Save(ProjectSnapshot.From(second), path);
         Assert.Equal(SKColors.Blue, ProjectStore.Load(path).ToDocument().Layers[0].Asset!.Image.GetPixel(0, 0));
         Assert.Single(Directory.GetFiles(_dir));
+    }
+
+    [Fact]
+    public void SaveValidatesCompletedArchiveBeforeReplacingDestination()
+    {
+        var path = PathFor("validated.comp");
+        var first = new CanvasDocument(4, 4, [new ImageLayer(Asset(Solid(4, 4, SKColors.Red), "Red"), Point.Zero)]);
+        ProjectStore.Save(ProjectSnapshot.From(first), path);
+        var original = File.ReadAllBytes(path);
+
+        var second = new CanvasDocument(4, 4, [new ImageLayer(Asset(Solid(4, 4, SKColors.Blue), "Blue"), Point.Zero)]);
+        var error = Assert.Throws<ProjectException>(() => ProjectStore.Save(ProjectSnapshot.From(second), path, temp => File.WriteAllText(temp, "damaged after write")));
+
+        Assert.Equal(ProjectError.Invalid, error.Error);
+        Assert.Equal(original, File.ReadAllBytes(path));
+        Assert.Empty(Directory.GetFiles(_dir, "*.tmp"));
+    }
+
+    [Fact]
+    public void FailedReplacementPreservesDestinationAndCleansTemporaryFile()
+    {
+        var path = PathFor("locked.comp");
+        var first = new CanvasDocument(4, 4, [new ImageLayer(Asset(Solid(4, 4, SKColors.Red), "Red"), Point.Zero)]);
+        ProjectStore.Save(ProjectSnapshot.From(first), path);
+        var original = File.ReadAllBytes(path);
+
+        using (File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            var second = new CanvasDocument(4, 4, [new ImageLayer(Asset(Solid(4, 4, SKColors.Blue), "Blue"), Point.Zero)]);
+            Assert.Throws<IOException>(() => ProjectStore.Save(ProjectSnapshot.From(second), path));
+        }
+
+        Assert.Equal(original, File.ReadAllBytes(path));
+        Assert.Empty(Directory.GetFiles(_dir, "*.tmp"));
     }
 
     [Fact]

@@ -118,6 +118,7 @@ public sealed class DocumentRendererTests
         { LayerBlendMode.Difference, 200, 50, 1 },
         { LayerBlendMode.Overlay, 200, 100, 1 },
         { LayerBlendMode.Overlay, 60, 100, 1 },
+        { LayerBlendMode.SoftLight, 60, 200, 0.75 },
         { LayerBlendMode.ColorDodge, 100, 100, 0.5 },
         { LayerBlendMode.ColorBurn, 150, 100, 0.5 },
     };
@@ -134,6 +135,9 @@ public sealed class DocumentRendererTests
             LayerBlendMode.Lighten => Math.Max(cb, cs),
             LayerBlendMode.Difference => Math.Abs(cb - cs),
             LayerBlendMode.Overlay => cb <= 0.5 ? cs * 2 * cb : cs + ((2 * cb) - 1) - (cs * ((2 * cb) - 1)),
+            LayerBlendMode.SoftLight => cs <= 0.5
+                ? cb - ((1 - (2 * cs)) * cb * (1 - cb))
+                : cb + ((2 * cs - 1) * ((cb <= 0.25 ? (((16 * cb) - 12) * cb + 4) * cb : Math.Sqrt(cb)) - cb)),
             LayerBlendMode.ColorDodge => cb == 0 ? 0 : cs >= 1 ? 1 : Math.Min(1, cb / (1 - cs)),
             LayerBlendMode.ColorBurn => cb >= 1 ? 1 : cs <= 0 ? 0 : 1 - Math.Min(1, (1 - cb) / cs),
             _ => throw new ArgumentOutOfRangeException(nameof(m)),

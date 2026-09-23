@@ -8,6 +8,7 @@
 
   <PropertyGroup>
     <RootNamespace>Compositor.Kernels</RootNamespace>
+    <KernelsArch Condition="'$(KernelsArch)' == '' and '$(RuntimeIdentifier)' == 'win-arm64'">arm64</KernelsArch>
     <KernelsArch Condition="'$(KernelsArch)' == ''">x64</KernelsArch>
     <KernelsDll>$(MSBuildThisFileDirectory)bin\native\$(KernelsArch)\compositor_kernels.dll</KernelsDll>
   </PropertyGroup>

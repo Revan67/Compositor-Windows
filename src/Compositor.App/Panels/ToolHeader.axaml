@@ -16,8 +16,8 @@
       <Setter Property="Margin" Value="10,0,4,0" />
     </Style>
   </UserControl.Styles>
-  <Border Background="#2D2D30" Height="36" IsVisible="{Binding ShowsTransformControls}">
-    <StackPanel Orientation="Horizontal" Margin="8,0" DataContext="{Binding Inspector}" x:DataType="vm:TransformInspectorViewModel" IsEnabled="{Binding IsEnabled}">
+  <Grid Height="36" Background="#2D2D30">
+    <StackPanel Orientation="Horizontal" Margin="8,0" DataContext="{Binding Inspector}" x:DataType="vm:TransformInspectorViewModel" IsEnabled="{Binding IsEnabled}" IsVisible="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).ShowsTransformControls}">
       <TextBlock Classes="label" Text="X" />
       <NumericUpDown Value="{Binding X}" FormatString="0.##" />
       <TextBlock Classes="label" Text="Y" />
@@ -35,5 +35,29 @@
       <TextBlock Classes="label" Text="Sampling" />
       <ComboBox ItemsSource="{Binding Samplings}" SelectedItem="{Binding Sampling}" FontSize="12" Width="110" />
     </StackPanel>
-  </Border>
+    <StackPanel Orientation="Horizontal" Margin="8,0" VerticalAlignment="Center" IsVisible="{Binding ShowsCropControls}">
+      <TextBlock Classes="label" Text="Ratio" />
+      <ComboBox ItemsSource="{Binding CropRatioChoices}" SelectedItem="{Binding CropRatioChoice}" Width="110" />
+      <Button Content="Commit" Command="{Binding CropCommit}" Margin="12,0,0,0" Padding="12,4" />
+      <Button Content="Cancel" Command="{Binding CropCancel}" Margin="6,0,0,0" Padding="12,4" />
+      <TextBlock Classes="label" Text="Drag outside to create · Alt resizes symmetrically · Enter commits · Esc cancels" />
+    </StackPanel>
+    <StackPanel Orientation="Horizontal" Margin="8,0" VerticalAlignment="Center" IsVisible="{Binding ShowsSelectionControls}">
+      <TextBlock Classes="label" Text="Rectangular Marquee" />
+      <Button Content="Select All" Command="{Binding SelectAll}" Padding="12,4" />
+      <Button Content="Deselect" Command="{Binding Deselect}" Margin="6,0,0,0" Padding="12,4" />
+      <TextBlock Classes="label" Text="Drag inside to move · Shift square · Ctrl add · Alt subtract · Ctrl+Alt intersect" />
+    </StackPanel>
+    <StackPanel Orientation="Horizontal" Margin="8,0" VerticalAlignment="Center" IsVisible="{Binding ShowsBrushControls}">
+      <TextBlock Classes="label" Text="Size" />
+      <NumericUpDown Value="{Binding BrushSize}" Minimum="1" Maximum="2000" FormatString="0.#" />
+      <TextBlock Classes="label" Text="Opacity %" />
+      <NumericUpDown Value="{Binding BrushOpacityPercent}" Minimum="1" Maximum="100" FormatString="0" />
+      <TextBlock Classes="label" Text="Hardness %" />
+      <NumericUpDown Value="{Binding BrushHardnessPercent}" Minimum="0" Maximum="100" FormatString="0" />
+      <TextBlock Classes="label" Text="Color" />
+      <TextBox Text="{Binding BrushColorHex}" Width="82" FontFamily="Consolas" />
+      <TextBlock Classes="label" Text="Shift-click draws a line · selection clips strokes" />
+    </StackPanel>
+  </Grid>
 </UserControl>

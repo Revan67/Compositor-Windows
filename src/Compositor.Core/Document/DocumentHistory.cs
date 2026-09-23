@@ -44,6 +44,12 @@ public sealed class DocumentHistory
 
     public void MarkSaved() => _savedRevision = _revision;
 
+    /// <summary>Marks an externally recovered snapshot dirty so closing still asks the user to save it.</summary>
+    public void MarkModified()
+    {
+        _revision = Guid.NewGuid();
+    }
+
     public void Reset()
     {
         _past.Clear();

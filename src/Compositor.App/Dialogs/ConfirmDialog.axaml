@@ -6,7 +6,7 @@
   <StackPanel Margin="16" Spacing="14">
     <TextBlock x:Name="Message" TextWrapping="Wrap" />
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-      <Button Content="Cancel" Click="Cancel" IsCancel="True" />
+      <Button x:Name="CancelButton" Content="Cancel" Click="Cancel" IsCancel="True" />
       <Button x:Name="Confirm" Click="Accept" IsDefault="True" />
     </StackPanel>
   </StackPanel>

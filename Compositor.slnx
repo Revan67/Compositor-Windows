@@ -5,7 +5,11 @@
     <Project Path="src/Compositor.App/Compositor.App.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Compositor.App.Tests/Compositor.App.Tests.csproj" />
     <Project Path="tests/Compositor.Kernels.Tests/Compositor.Kernels.Tests.csproj" />
     <Project Path="tests/Compositor.Core.Tests/Compositor.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Compositor.Stress/Compositor.Stress.csproj" />
   </Folder>
 </Solution>

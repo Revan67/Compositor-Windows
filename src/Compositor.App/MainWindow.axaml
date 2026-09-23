@@ -26,6 +26,8 @@
     <KeyBinding Gesture="Ctrl+OemMinus" Command="{Binding ZoomOut}" />
     <KeyBinding Gesture="Ctrl+0" Command="{Binding FitToWindow}" />
     <KeyBinding Gesture="Ctrl+1" Command="{Binding ActualSize}" />
+    <KeyBinding Gesture="Ctrl+A" Command="{Binding SelectAll}" />
+    <KeyBinding Gesture="Ctrl+D" Command="{Binding Deselect}" />
   </Window.KeyBindings>
 
   <DockPanel>
@@ -47,6 +49,10 @@
         <MenuItem Header="{Binding UndoLabel}" InputGesture="Ctrl+Z" Command="{Binding Undo}" />
         <MenuItem Header="{Binding RedoLabel}" InputGesture="Ctrl+Shift+Z" Command="{Binding Redo}" />
       </MenuItem>
+      <MenuItem Header="_Image">
+        <MenuItem Header="Canvas Size…" Command="{Binding #Root.CanvasSizeCommand}" />
+        <MenuItem Header="Image Size…" Command="{Binding #Root.ImageSizeCommand}" />
+      </MenuItem>
       <MenuItem Header="_Layer">
         <MenuItem Header="New Layer" InputGesture="Ctrl+Shift+N" Command="{Binding AddLayer}" />
         <MenuItem Header="New Folder" Command="{Binding AddFolder}" />
@@ -62,11 +68,18 @@
         <MenuItem Header="Delete Layer Mask" Command="{Binding DeleteMask}" />
         <MenuItem Header="Create / Release Clipping Mask" Command="{Binding ToggleClipping}" />
       </MenuItem>
+      <MenuItem Header="_Select">
+        <MenuItem Header="Select All" InputGesture="Ctrl+A" Command="{Binding SelectAll}" />
+        <MenuItem Header="Deselect" InputGesture="Ctrl+D" Command="{Binding Deselect}" />
+      </MenuItem>
       <MenuItem Header="_View">
         <MenuItem Header="Zoom In" InputGesture="Ctrl+OemPlus" Command="{Binding ZoomIn}" />
         <MenuItem Header="Zoom Out" InputGesture="Ctrl+OemMinus" Command="{Binding ZoomOut}" />
         <MenuItem Header="Fit to Window" InputGesture="Ctrl+0" Command="{Binding FitToWindow}" />
         <MenuItem Header="Actual Pixels" InputGesture="Ctrl+1" Command="{Binding ActualSize}" />
+      </MenuItem>
+      <MenuItem Header="_Help">
+        <MenuItem Header="Open Diagnostic Logs" Command="{Binding #Root.OpenLogsCommand}" />
       </MenuItem>
     </Menu>
 

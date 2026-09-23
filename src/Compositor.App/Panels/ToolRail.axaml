@@ -18,6 +18,10 @@
   <Border Background="#252526" Width="44">
     <StackPanel Margin="2,6">
       <RadioButton Classes="tool" GroupName="tool" Content="✥" ToolTip.Tip="Move / Transform (V)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Move}}" />
+      <RadioButton Classes="tool" GroupName="tool" Content="⌗" ToolTip.Tip="Crop (C)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Crop}}" />
+      <RadioButton Classes="tool" GroupName="tool" Content="▧" ToolTip.Tip="Rectangular Marquee (M)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Marquee}}" />
+      <RadioButton Classes="tool" GroupName="tool" Content="●" ToolTip.Tip="Brush (B)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Brush}}" />
+      <RadioButton Classes="tool" GroupName="tool" Content="◒" ToolTip.Tip="Eraser (E)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Eraser}}" />
       <RadioButton Classes="tool" GroupName="tool" Content="✋" ToolTip.Tip="Hand (H)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Hand}}" />
       <RadioButton Classes="tool" GroupName="tool" Content="🔍" ToolTip.Tip="Zoom (Z) — Alt-click zooms out" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Zoom}}" />
     </StackPanel>
