@@ -16,4 +16,4 @@ Run locally:
 .\scripts\stress.ps1 -Profile full -Output .\artifacts\stress-full.json
 ```
 
-The quick profile runs in x64 CI. The full profile is a beta-candidate/manual gate. Current 4K p95 is roughly a 49 fps update cadence before presentation; broader-alpha hardware results will determine whether region/tile preview invalidation becomes a beta blocker. Corruption, exceptions, unbounded growth across repeated runs, or a substantial regression from this baseline is always blocking.
+The quick profile runs in x64 CI. The full profile is a beta-candidate/manual gate. The `0.9.0-beta.1` candidate measured a 15.23 ms median and 16.64 ms p95 preview, 1.45 s save, 63 ms reopen, and 350 MiB working set with exact pixel round-trip. Broader hardware results will determine whether region/tile preview invalidation becomes a beta blocker. Corruption, exceptions, unbounded growth across repeated runs, or a substantial regression from this baseline is always blocking.

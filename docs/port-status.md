@@ -1,14 +1,14 @@
 # Windows port status
 
-_Updated 2026-09-20. This is the concise live status; `windows-port-plan.md` retains the architectural rationale and longer phase history._
+_Updated 2026-09-22. This is the concise live status; `windows-port-plan.md` retains the architectural rationale and longer phase history._
 
-## Working in the broader alpha
+## Working in the beta candidate
 
 | Area | Current coverage |
 | --- | --- |
-| Documents | New canvas; validated atomic `.comp` save/open; dirty state; discard confirmation; undo/redo; 45-second crash-recovery autosave |
+| Documents | New canvas; validated atomic `.comp` save/open; dirty state; discard confirmation; undo/redo; edit-debounced and periodic crash recovery |
 | Canvas | Fit, zoom, pan, checkerboard, pixel grid, drag-and-drop import |
-| Layers | Add, multi-select, duplicate, delete, command/direct-drag reorder, group, visibility/eye swipe, opacity, blend modes, masks and clipping masks |
+| Layers | Add, multi-select, duplicate, delete, Up/Down and context-menu reorder, group, visibility, opacity, blend modes, masks and clipping masks |
 | Transform | Move, resize, rotate, flip, sampling, inspector, snapping, keyboard nudging |
 | Crop and selection | Crop workflow; rectangular marquee; replace/add/subtract/intersect; animated marching ants; drag/keyboard outline movement; select all; deselect; selection-clipped painting |
 | Painting | Round brush and eraser; live preview; color, size, hardness and opacity; Shift-click lines; size-aware cursor; transformed-layer mapping; one undo entry per stroke |
@@ -22,7 +22,7 @@ _Updated 2026-09-20. This is the concise live status; `windows-port-plan.md` ret
 | --- | --- |
 | Brush | Hex color entry rather than a full picker; no spacing, pressure, right-drag adjustment, presets, or sparse tiled commit yet |
 | Selection | Rectangular marquee composition and outline movement work; no ellipse/lasso/wand, feather, edge editing, or selected-pixel move yet |
-| Layer panel | Core multi-select, drag/reorder and eye-swipe workflows work; deeper nesting/drop affordances and visual polish remain |
+| Layer panel | Multi-select and explicit reorder/visibility controls work; direct drag reorder, eye swipe, deeper nesting affordances and visual polish remain |
 | Image formats | HEIC/TIFF via WIC is not implemented |
 | Packaging | Portable unsigned ZIP only; no installer, signing, updater, or public release |
 
@@ -36,11 +36,11 @@ _Updated 2026-09-20. This is the concise live status; `windows-port-plan.md` ret
 
 ## Immediate priorities
 
-1. Use the instrumented broader alpha to collect real workflow failures and validate recovery UX.
-2. Validate layer drag/reorder, multi-select and eye-swipe behavior across nested/clipped stacks; refine drop affordances.
+1. Run the beta recovery and project round-trip checklist with real imported/painted pixels.
+2. Validate explicit layer ordering, multi-select and visibility across nested/clipped stacks; retain direct drag reorder as follow-up work.
 3. Add selection outline/pixel movement, then expand selection shapes and brush ergonomics.
 4. Keep the 4K stress baseline green; optimize preview invalidation if broader hardware falls below the beta bar.
 
 ## Quality gate
 
-The current solution has 161 automated tests. A handoff build must also complete a clean Release build, pass the quick stress workload, publish successfully, pass x64 native DLL loading/export checks, and include `ALPHA-TESTING.md`. No public release is authorized yet.
+The current solution has 161 automated tests. A handoff build must also complete a clean Release build, pass the full stress workload, publish successfully, pass x64 native DLL loading/export checks, and include `BETA-TESTING.md` plus a SHA-256 checksum. No public release is authorized yet.
