@@ -9,6 +9,7 @@
 [![Architectures](https://img.shields.io/badge/architectures-x64%20%7C%20arm64-0078D4)](#building)
 [![Tests](https://img.shields.io/badge/tests-161%20passing-brightgreen)](#testing)
 [![Status: beta candidate](https://img.shields.io/badge/status-beta%20candidate-yellow)](#status)
+[![Download beta](https://img.shields.io/badge/download-0.9.0--beta.1-blue?logo=github)](https://github.com/Revan67/Compositor-Windows/releases/tag/v0.9.0-beta.1)
 [![Last commit](https://img.shields.io/github/last-commit/Revan67/Compositor-Windows)](https://github.com/Revan67/Compositor-Windows/commits/main)
 [![Open issues](https://img.shields.io/github/issues/Revan67/Compositor-Windows)](https://github.com/Revan67/Compositor-Windows/issues)
 [![Derived from Compositor](https://img.shields.io/badge/derived%20from-robbietilton%2FCompositor-lightgrey)](https://github.com/robbietilton/Compositor)
@@ -16,6 +17,12 @@
 A free, open-source layered image editor for Windows, built around a Photoshop-style compositing workflow. The current beta candidate supports layered documents, folders, masks, clipping masks, blend modes, transforms, crop, rectangular selections, brush/eraser work, project persistence, crash recovery, resizing, and common image import/export. Retouching tools, adjustments, filters, editable text/shapes, and PSD/PSB interoperability remain on the roadmap.
 
 This is an independent Windows application derived from [Compositor](https://github.com/robbietilton/Compositor) by Robbie Tilton, a macOS app written in Swift. The Windows version is a C# rewrite on [Avalonia](https://avaloniaui.net) and [SkiaSharp](https://github.com/mono/SkiaSharp); it uses the original behavior as a specification and reuses its C pixel kernels unchanged, but has its own project format and does not track the Mac app as a merge upstream.
+
+## Download the public beta
+
+[Download Compositor for Windows 0.9.0 Beta 1](https://github.com/Revan67/Compositor-Windows/releases/tag/v0.9.0-beta.1). The release includes the portable x64 ZIP, SHA-256 checksum, current feature list and testing instructions.
+
+This is an unsigned prerelease and the UI is not final. Extract the full ZIP before running `Compositor.App.exe`, keep important source files backed up, and review the [beta testing guide](docs/beta-testing.md) before testing.
 
 ## Status
 
