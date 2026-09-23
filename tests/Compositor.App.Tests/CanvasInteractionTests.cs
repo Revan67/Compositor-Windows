@@ -102,4 +102,22 @@ public sealed class CanvasInteractionTests
         Assert.Equal("#3366CC", viewModel.BrushColorHex);
     }
 
+    [Fact]
+    public void DraggingInsideSelectionMovesOutlineAsOneEdit()
+    {
+        var viewModel = new EditorViewModel();
+        viewModel.NewCanvas(100, 80);
+        viewModel.Session.SetSelection(DocumentSelection.Rectangle(new Rect(10, 10, 20, 20), viewModel.Session.Document!.Bounds));
+        var before = viewModel.Session.History.UndoCount;
+
+        viewModel.BeginMarquee(new Point(15, 15));
+        viewModel.UpdateMarquee(new Point(25, 30), square: false);
+        Assert.Equal(new Rect(20, 25, 20, 20), viewModel.DisplayedSelection!.Bounds);
+        Assert.Equal(before, viewModel.Session.History.UndoCount);
+        viewModel.CommitMarquee();
+
+        Assert.Equal(new Rect(20, 25, 20, 20), viewModel.Session.Document!.Selection!.Bounds);
+        Assert.Equal(before + 1, viewModel.Session.History.UndoCount);
+    }
+
 }

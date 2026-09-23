@@ -49,6 +49,10 @@
         <MenuItem Header="{Binding UndoLabel}" InputGesture="Ctrl+Z" Command="{Binding Undo}" />
         <MenuItem Header="{Binding RedoLabel}" InputGesture="Ctrl+Shift+Z" Command="{Binding Redo}" />
       </MenuItem>
+      <MenuItem Header="_Image">
+        <MenuItem Header="Canvas Size…" Command="{Binding #Root.CanvasSizeCommand}" />
+        <MenuItem Header="Image Size…" Command="{Binding #Root.ImageSizeCommand}" />
+      </MenuItem>
       <MenuItem Header="_Layer">
         <MenuItem Header="New Layer" InputGesture="Ctrl+Shift+N" Command="{Binding AddLayer}" />
         <MenuItem Header="New Folder" Command="{Binding AddFolder}" />

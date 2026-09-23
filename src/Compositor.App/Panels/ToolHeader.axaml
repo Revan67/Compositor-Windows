@@ -46,7 +46,7 @@
       <TextBlock Classes="label" Text="Rectangular Marquee" />
       <Button Content="Select All" Command="{Binding SelectAll}" Padding="12,4" />
       <Button Content="Deselect" Command="{Binding Deselect}" Margin="6,0,0,0" Padding="12,4" />
-      <TextBlock Classes="label" Text="Drag to select · Shift makes a square · Ctrl+D deselects" />
+      <TextBlock Classes="label" Text="Drag inside to move · Shift square · Ctrl add · Alt subtract · Ctrl+Alt intersect" />
     </StackPanel>
     <StackPanel Orientation="Horizontal" Margin="8,0" VerticalAlignment="Center" IsVisible="{Binding ShowsBrushControls}">
       <TextBlock Classes="label" Text="Size" />

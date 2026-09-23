@@ -1,0 +1,27 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Compositor.App.Dialogs.ImageSizeWindow"
+        Title="Image Size" Width="360" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+  <StackPanel Margin="16" Spacing="10">
+    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+      <TextBlock Grid.Row="0" Text="Width" VerticalAlignment="Center" Margin="0,0,12,6" />
+      <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="WidthBox" Minimum="1" Maximum="30000" FormatString="0" ValueChanged="WidthChanged" Margin="0,0,0,6" />
+      <TextBlock Grid.Row="1" Text="Height" VerticalAlignment="Center" Margin="0,0,12,6" />
+      <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="HeightBox" Minimum="1" Maximum="30000" FormatString="0" ValueChanged="HeightChanged" Margin="0,0,0,6" />
+      <CheckBox Grid.Row="2" Grid.ColumnSpan="2" x:Name="LockBox" Content="Lock aspect ratio" IsChecked="True" Margin="0,0,0,6" />
+      <TextBlock Grid.Row="3" Text="Resolution" VerticalAlignment="Center" Margin="0,0,12,6" />
+      <NumericUpDown Grid.Row="3" Grid.Column="1" x:Name="ResolutionBox" Minimum="1" Maximum="9600" FormatString="0.##" Margin="0,0,0,6" />
+      <TextBlock Grid.Row="4" Text="Sampling" VerticalAlignment="Center" Margin="0,0,12,0" />
+      <ComboBox Grid.Row="4" Grid.Column="1" x:Name="SamplingBox" SelectedIndex="2">
+        <ComboBoxItem Content="Nearest" /><ComboBoxItem Content="Smooth" /><ComboBoxItem Content="High quality" />
+      </ComboBox>
+    </Grid>
+    <TextBlock Text="Resampling rasterizes transformed layers into the new pixel grid." Foreground="#9A9A9A" FontSize="12" TextWrapping="Wrap" />
+    <TextBlock x:Name="ErrorText" Foreground="#FF6B6B" FontSize="12" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Content="Cancel" Click="Cancel" IsCancel="True" />
+      <Button Content="Apply" Click="Apply" IsDefault="True" />
+    </StackPanel>
+  </StackPanel>
+</Window>

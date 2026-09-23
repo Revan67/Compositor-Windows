@@ -37,6 +37,47 @@ public sealed class EditorSessionTests
     // MARK: History
 
     [Fact]
+    public void RecoveredDocumentStartsModified()
+    {
+        var original = new EditorSession();
+        original.CreateDocument(80, 60, emptyLayer: true);
+        var recovered = new EditorSession();
+
+        recovered.OpenDocument(original.Document!, original.ActiveLayerId, recovered: true);
+
+        Assert.True(recovered.IsModified);
+        Assert.False(recovered.CanUndo);
+    }
+
+    [Fact]
+    public void SelectionShapesAddSubtractAndIntersectWithoutMutatingSource()
+    {
+        var bounds = new Rect(0, 0, 20, 10);
+        var left = DocumentSelection.Rectangle(new Rect(0, 0, 10, 10), bounds)!;
+        var right = DocumentSelection.Rectangle(new Rect(5, 0, 10, 10), bounds)!;
+
+        var added = DocumentSelection.Combine(left, right, SelectionCombineMode.Add)!;
+        var subtracted = DocumentSelection.Combine(left, right, SelectionCombineMode.Subtract)!;
+        var intersected = DocumentSelection.Combine(left, right, SelectionCombineMode.Intersect)!;
+
+        Assert.Equal(new Rect(0, 0, 15, 10), added.Bounds);
+        Assert.Equal(new Rect(0, 0, 5, 10), subtracted.Bounds);
+        Assert.Equal(new Rect(5, 0, 5, 10), intersected.Bounds);
+        Assert.Equal(new Rect(0, 0, 10, 10), left.Bounds);
+    }
+
+    [Fact]
+    public void TranslatedSelectionIsClippedToDocument()
+    {
+        var bounds = new Rect(0, 0, 20, 20);
+        var selection = DocumentSelection.Rectangle(new Rect(5, 5, 10, 10), bounds)!;
+
+        Assert.Equal(new Rect(12, 3, 8, 10), selection.Translated(7, -2, bounds)!.Bounds);
+        Assert.Null(selection.Translated(30, 0, bounds));
+        Assert.Equal(new Rect(5, 5, 10, 10), selection.Bounds);
+    }
+
+    [Fact]
     public void EveryLayerEditRoundTripsWithSelection()
     {
         var session = new EditorSession();

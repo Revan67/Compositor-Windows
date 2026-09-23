@@ -136,7 +136,7 @@ public sealed partial class EditorSession
     }
 
     /// <summary>Installs a loaded project with clean history, as opening does.</summary>
-    public void OpenDocument(CanvasDocument document, Guid? activeLayerId)
+    public void OpenDocument(CanvasDocument document, Guid? activeLayerId, bool recovered = false)
     {
         ArgumentNullException.ThrowIfNull(document);
         Document = document;
@@ -145,6 +145,10 @@ public sealed partial class EditorSession
         IsMaskSelected = false;
         _collapsedGroupIds.Clear();
         History.Reset();
+        if (recovered)
+        {
+            History.MarkModified();
+        }
         Changed?.Invoke();
     }
 
@@ -177,7 +181,13 @@ public sealed partial class EditorSession
         }
 
         var valid = new HashSet<Guid>(ids.Where(id => Layers.Any(l => l.Id == id)));
-        ActiveLayerId = primary is { } p && valid.Contains(p) ? p : Layers.FirstOrDefault(l => valid.Contains(l.Id))?.Id;
+        var active = primary is { } p && valid.Contains(p) ? p : Layers.FirstOrDefault(l => valid.Contains(l.Id))?.Id;
+        if (ActiveLayerId == active && SelectedLayerIds.SetEquals(valid))
+        {
+            return;
+        }
+
+        ActiveLayerId = active;
         SelectedLayerIds = valid;
         if (ActiveLayer?.Mask is null)
         {

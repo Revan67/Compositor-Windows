@@ -31,6 +31,18 @@ jobs:
         if: matrix.arch == 'x64'
         run: dotnet test Compositor.slnx --configuration Release --no-build --no-restore
 
+      - name: Quick beta stress run
+        if: matrix.arch == 'x64'
+        shell: pwsh
+        run: ./scripts/stress.ps1 -Profile quick -Output ./artifacts/stress-quick.json
+
+      - uses: actions/upload-artifact@v4
+        if: matrix.arch == 'x64'
+        with:
+          name: Compositor-stress-metrics
+          path: artifacts/stress-quick.json
+          if-no-files-found: error
+
       - name: Publish
         shell: pwsh
         run: ./scripts/publish-windows.ps1 -Arch ${{ matrix.arch }} -Configuration Release -SkipSmokeTest

@@ -6,6 +6,7 @@ using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
+using Avalonia.Threading;
 using Compositor.App.ViewModels;
 using Compositor.Core.Document;
 using Compositor.Core.Raster;
@@ -33,7 +34,6 @@ public sealed class EditorCanvas : Control
     private static readonly IPen GuidePen = new Pen(new SolidColorBrush(Color.FromArgb(0xC0, 0xFF, 0x4C, 0xD6)), 1);
     private static readonly IBrush HandleFill = new SolidColorBrush(Colors.White);
     private static readonly IPen HandleStroke = new Pen(new SolidColorBrush(Color.FromRgb(0x2A, 0x6F, 0xC9)), 1);
-    private static readonly IPen SelectionPen = new Pen(Brushes.White, 1, dashStyle: new DashStyle([4, 4], 0));
     private static readonly IPen BrushCursorLight = new Pen(new SolidColorBrush(Color.FromArgb(0xE0, 0xFF, 0xFF, 0xFF)), 1);
     private static readonly IPen BrushCursorDark = new Pen(new SolidColorBrush(Color.FromArgb(0xD0, 0, 0, 0)), 1);
 
@@ -42,6 +42,8 @@ public sealed class EditorCanvas : Control
     private bool _spaceHeld;
     private Point? _brushCursor;
     private readonly CanvasEditInteraction _edit = new();
+    private readonly DispatcherTimer _selectionTimer;
+    private double _selectionPhase;
 
     public EditorCanvas()
     {
@@ -50,6 +52,16 @@ public sealed class EditorCanvas : Control
         DragDrop.SetAllowDrop(this, true);
         AddHandler(DragDrop.DropEvent, OnDrop);
         AddHandler(DragDrop.DragOverEvent, (_, e) => e.DragEffects = e.DataTransfer.Contains(DataFormat.File) ? DragDropEffects.Copy : DragDropEffects.None);
+        _selectionTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
+        _selectionTimer.Tick += (_, _) =>
+        {
+            if (_vm?.SelectionFrame is not null)
+            {
+                _selectionPhase = (_selectionPhase + 1) % 8;
+                InvalidateVisual();
+            }
+        };
+        _selectionTimer.Start();
     }
 
     /// <summary>Raised with the messages of files that could not be imported by drop.</summary>
@@ -77,7 +89,7 @@ public sealed class EditorCanvas : Control
     {
         if (e.PropertyName is nameof(EditorViewModel.Composite) or nameof(EditorViewModel.Viewport) or nameof(EditorViewModel.HasDocument)
             or nameof(EditorViewModel.OverlayGeometry) or nameof(EditorViewModel.Tool) or nameof(EditorViewModel.CropFrame)
-            or nameof(EditorViewModel.SelectionFrame) or nameof(EditorViewModel.BrushSize))
+            or nameof(EditorViewModel.SelectionFrame) or nameof(EditorViewModel.DisplayedSelection) or nameof(EditorViewModel.BrushSize))
         {
             InvalidateVisual();
         }
@@ -134,14 +146,24 @@ public sealed class EditorCanvas : Control
 
     private void DrawSelection(DrawingContext context, CoreSize documentSize)
     {
-        if (_vm?.SelectionFrame is not { } frame || frame.IsEmpty)
+        if (_vm?.MarqueeDraft is { } draft && !draft.IsEmpty)
+        {
+            var min = _vm.Viewport.ViewPoint(draft.Origin, documentSize);
+            var max = _vm.Viewport.ViewPoint(new CorePoint(draft.MaxX, draft.MaxY), documentSize);
+            var outline = new Rect(min.X, min.Y, max.X - min.X, max.Y - min.Y);
+            context.DrawRectangle(null, new Pen(Brushes.Black, 1, dashStyle: new DashStyle([4, 4], _selectionPhase + 4)), outline);
+            context.DrawRectangle(null, new Pen(Brushes.White, 1, dashStyle: new DashStyle([4, 4], _selectionPhase)), outline);
+            return;
+        }
+
+        if (_vm?.DisplayedSelection is not { IsEmpty: false } selection)
         {
             return;
         }
 
-        var min = _vm.Viewport.ViewPoint(frame.Origin, documentSize);
-        var max = _vm.Viewport.ViewPoint(new CorePoint(frame.MaxX, frame.MaxY), documentSize);
-        context.DrawRectangle(null, SelectionPen, new Rect(min.X, min.Y, max.X - min.X, max.Y - min.Y));
+        var target = _vm.Viewport.DocumentRect(documentSize);
+        context.Custom(new SelectionDrawOperation(new Rect(Bounds.Size), selection.Path,
+            new SKRect((float)target.MinX, (float)target.MinY, (float)target.MaxX, (float)target.MaxY), documentSize, _selectionPhase));
     }
 
     private static readonly IBrush CropShade = new SolidColorBrush(Color.FromArgb(0x90, 0, 0, 0));
@@ -287,7 +309,11 @@ public sealed class EditorCanvas : Control
 
         if (_vm.Tool == EditorTool.Marquee)
         {
-            _vm.BeginMarquee(_vm.Viewport.DocumentPoint(view, document.Size));
+            var selectionMode = e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.KeyModifiers.HasFlag(KeyModifiers.Alt) ? SelectionCombineMode.Intersect
+                : e.KeyModifiers.HasFlag(KeyModifiers.Control) ? SelectionCombineMode.Add
+                : e.KeyModifiers.HasFlag(KeyModifiers.Alt) ? SelectionCombineMode.Subtract
+                : SelectionCombineMode.Replace;
+            _vm.BeginMarquee(_vm.Viewport.DocumentPoint(view, document.Size), selectionMode);
             e.Pointer.Capture(this);
             e.Handled = true;
             return;
@@ -380,7 +406,7 @@ public sealed class EditorCanvas : Control
             Cursor = new Cursor(StandardCursorType.Cross);
             InvalidateVisual();
         }
-        if (_vm.Tool == EditorTool.Marquee && _vm.MarqueeDraft is not null)
+        if (_vm.Tool == EditorTool.Marquee && _vm.IsSelectionGestureActive)
         {
             _vm.UpdateMarquee(_vm.Viewport.DocumentPoint(view, document.Size), e.KeyModifiers.HasFlag(KeyModifiers.Shift));
             e.Handled = true;
@@ -491,7 +517,7 @@ public sealed class EditorCanvas : Control
             e.Handled = true;
         }
 
-        if (_vm?.Tool == EditorTool.Marquee && _vm.MarqueeDraft is not null)
+        if (_vm?.Tool == EditorTool.Marquee && _vm.IsSelectionGestureActive)
         {
             _vm.CommitMarquee();
             e.Pointer.Capture(null);
@@ -552,8 +578,20 @@ public sealed class EditorCanvas : Control
                 _edit.Complete();
                 _vm.CommitCrop();
                 break;
-            case Key.Escape when _vm.Tool == EditorTool.Marquee && _vm.MarqueeDraft is not null:
+            case Key.Escape when _vm.Tool == EditorTool.Marquee && _vm.IsSelectionGestureActive:
                 _vm.CancelMarquee();
+                break;
+            case Key.Left when _vm.Tool == EditorTool.Marquee:
+                _vm.NudgeSelection(-step, 0);
+                break;
+            case Key.Right when _vm.Tool == EditorTool.Marquee:
+                _vm.NudgeSelection(step, 0);
+                break;
+            case Key.Up when _vm.Tool == EditorTool.Marquee:
+                _vm.NudgeSelection(0, -step);
+                break;
+            case Key.Down when _vm.Tool == EditorTool.Marquee:
+                _vm.NudgeSelection(0, step);
                 break;
             case Key.M when plain:
                 _vm.Tool = EditorTool.Marquee;
@@ -700,6 +738,40 @@ public sealed class EditorCanvas : Control
                 }
 
                 canvas.Restore();
+            }
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
+    private sealed class SelectionDrawOperation(Rect bounds, SKPath path, SKRect target, CoreSize documentSize, double phase) : ICustomDrawOperation
+    {
+        public Rect Bounds => bounds;
+
+        public bool HitTest(Point p) => false;
+
+        public bool Equals(ICustomDrawOperation? other) => false;
+
+        public void Render(ImmediateDrawingContext context)
+        {
+            var lease = context.TryGetFeature<ISkiaSharpApiLeaseFeature>()?.Lease();
+            if (lease is null)
+            {
+                return;
+            }
+
+            using (lease)
+            using (var transformed = new SKPath(path))
+            using (var darkEffect = SKPathEffect.CreateDash([4, 4], (float)(phase + 4)))
+            using (var lightEffect = SKPathEffect.CreateDash([4, 4], (float)phase))
+            using (var dark = new SKPaint { Color = SKColors.Black, Style = SKPaintStyle.Stroke, StrokeWidth = 1, PathEffect = darkEffect, IsAntialias = false })
+            using (var light = new SKPaint { Color = SKColors.White, Style = SKPaintStyle.Stroke, StrokeWidth = 1, PathEffect = lightEffect, IsAntialias = false })
+            {
+                transformed.Transform(SKMatrix.CreateScaleTranslation(target.Width / (float)documentSize.Width, target.Height / (float)documentSize.Height, target.Left, target.Top));
+                lease.SkCanvas.DrawPath(transformed, dark);
+                lease.SkCanvas.DrawPath(transformed, light);
             }
         }
 

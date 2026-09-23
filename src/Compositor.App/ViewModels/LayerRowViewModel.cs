@@ -13,6 +13,7 @@ public sealed class LayerRowViewModel(LayerHierarchy.Entry entry, Bitmap? thumbn
 
     /// <summary>The layer's own flag; a hidden folder dims its contents through <see cref="EffectivelyVisible"/>.</summary>
     public bool IsVisible => Layer.IsVisible;
+    public string VisibilityGlyph => IsVisible ? "👁" : "○";
     public bool EffectivelyVisible { get; } = entry.Visible;
     public bool IsGroup => Layer.IsGroup;
     public bool HasMask => Layer.Mask is not null;

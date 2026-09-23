@@ -7,7 +7,7 @@
 [![SkiaSharp 3.119](https://img.shields.io/badge/SkiaSharp-3.119-0D9488)](https://github.com/mono/SkiaSharp)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)](#building)
 [![Architectures](https://img.shields.io/badge/architectures-x64%20%7C%20arm64-0078D4)](#building)
-[![Tests](https://img.shields.io/badge/tests-155%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-161%20passing-brightgreen)](#testing)
 [![Status: broader alpha](https://img.shields.io/badge/status-broader%20alpha-orange)](#status)
 [![Last commit](https://img.shields.io/github/last-commit/Revan67/Compositor-Windows)](https://github.com/Revan67/Compositor-Windows/commits/main)
 [![Open issues](https://img.shields.io/github/issues/Revan67/Compositor-Windows)](https://github.com/Revan67/Compositor-Windows/issues)
@@ -63,9 +63,13 @@ dotnet test Compositor.slnx --configuration Release
 
 The suite covers the native kernels, geometry, rendering, document/history behavior, project validation and round trips, canvas interactions, and diagnostics. For hands-on coverage, follow [docs/alpha-testing.md](docs/alpha-testing.md). Keep original assets backed up and report the smallest reproduction plus the newest diagnostic log.
 
+Run `./scripts/stress.ps1 -Profile quick` for the CI-sized 2K paint/save/reopen workload, or `-Profile full` for the 4K/800 px beta workload. Both verify exact rendered pixels after save/reopen and emit timing/memory JSON. See [docs/stress-baseline.md](docs/stress-baseline.md) for the current baseline.
+
 ### Alpha diagnostics
 
 Every run writes a timestamped diagnostic log under `%LOCALAPPDATA%\Compositor\Logs`; **Help → Open Diagnostic Logs** opens that folder. It records build/runtime information, commands, tool and edit workflows, project I/O, Avalonia trace output and unhandled exceptions. The newest 20 logs are retained. When reporting an alpha failure, reproduce it once and attach the newest `compositor-*.log` file.
+
+Modified documents are also autosaved every 45 seconds while idle to `%LOCALAPPDATA%\Compositor\Recovery`. After an interrupted session, startup offers to recover the snapshot as an unsaved project or discard it. Recovery never overwrites the original project and is cleared after an intentional save, open, new document, discard, or clean close.
 
 ## Layout
 
@@ -93,6 +97,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Upstream macOS Compositor is reference m
 - [Windows port plan](docs/windows-port-plan.md) — architecture, phases, risks and decisions
 - [Project format](docs/project-format.md) — `.comp` schema and validation
 - [Brush performance](docs/brush-performance.md) — reference implementation behavior and performance targets
+- [Stress baseline](docs/stress-baseline.md) — repeatable Windows beta workload and current measurements
+- [Beta plan](docs/beta-plan.md) — scope, gates and remaining blockers
 
 ## License
 

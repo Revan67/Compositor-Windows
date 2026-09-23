@@ -27,6 +27,10 @@ public sealed class EditorViewModel : ObservableObject
     private EditorTool _tool = EditorTool.Move;
     private Compositor.Core.Geometry.Rect? _marqueeDraft;
     private Point? _marqueeStart;
+    private SelectionCombineMode _marqueeMode;
+    private Point? _selectionMoveStart;
+    private DocumentSelection? _selectionMoveOriginal;
+    private DocumentSelection? _selectionPreview;
     private BrushStroke? _brushStroke;
     private CanvasDocument? _brushPreviewDocument;
     private double _brushSize = 24;
@@ -270,6 +274,10 @@ public sealed class EditorViewModel : ObservableObject
 
     public Compositor.Core.Geometry.Rect? SelectionFrame => MarqueeDraft ?? Session.Document?.Selection?.Bounds;
 
+    public DocumentSelection? DisplayedSelection => _selectionPreview ?? Session.Document?.Selection;
+
+    public bool IsSelectionGestureActive => MarqueeDraft is not null || _selectionMoveStart is not null;
+
     public Compositor.Core.Geometry.Rect? MarqueeDraft
     {
         get => _marqueeDraft;
@@ -282,20 +290,40 @@ public sealed class EditorViewModel : ObservableObject
         }
     }
 
-    public void BeginMarquee(Point point)
+    public void BeginMarquee(Point point, SelectionCombineMode mode = SelectionCombineMode.Replace)
     {
         if (Session.Document is null)
         {
             return;
         }
 
+        if (mode == SelectionCombineMode.Replace && Session.Document.Selection is { } selection && selection.Path.Contains((float)point.X, (float)point.Y))
+        {
+            _selectionMoveStart = point;
+            _selectionMoveOriginal = selection;
+            _selectionPreview = selection;
+            Raise(nameof(DisplayedSelection));
+            Raise(nameof(IsSelectionGestureActive));
+            AppLog.Info("Selection", $"Move begin: x={point.X:0.##}; y={point.Y:0.##}");
+            return;
+        }
+
         _marqueeStart = point;
+        _marqueeMode = mode;
         MarqueeDraft = new Compositor.Core.Geometry.Rect(point.X, point.Y, 0, 0);
+        Raise(nameof(IsSelectionGestureActive));
         AppLog.Info("Selection", $"Marquee begin: x={point.X:0.##}; y={point.Y:0.##}");
     }
 
     public void UpdateMarquee(Point point, bool square)
     {
+        if (_selectionMoveStart is { } moveStart && _selectionMoveOriginal is { } original && Session.Document is { } document)
+        {
+            _selectionPreview = original.Translated(point.X - moveStart.X, point.Y - moveStart.Y, document.Bounds);
+            Raise(nameof(DisplayedSelection));
+            return;
+        }
+
         if (_marqueeStart is not { } start)
         {
             return;
@@ -315,25 +343,50 @@ public sealed class EditorViewModel : ObservableObject
 
     public void CommitMarquee()
     {
-        if (Session.Document is { } document && MarqueeDraft is { } draft)
+        if (_selectionMoveStart is not null)
         {
-            Session.SetSelection(DocumentSelection.Rectangle(draft, document.Bounds), "Marquee");
-            AppLog.Info("Selection", $"Marquee commit: x={draft.X:0.##}; y={draft.Y:0.##}; width={draft.Width:0.##}; height={draft.Height:0.##}");
+            Session.SetSelection(_selectionPreview, "Move Selection");
+            AppLog.Info("Selection", $"Move commit: bounds={_selectionPreview?.Bounds}");
+        }
+        else if (Session.Document is { } document && MarqueeDraft is { } draft)
+        {
+            var shape = DocumentSelection.Rectangle(draft, document.Bounds);
+            Session.SetSelection(DocumentSelection.Combine(document.Selection, shape, _marqueeMode), $"Marquee {_marqueeMode}");
+            AppLog.Info("Selection", $"Marquee commit: mode={_marqueeMode}; x={draft.X:0.##}; y={draft.Y:0.##}; width={draft.Width:0.##}; height={draft.Height:0.##}");
         }
 
         _marqueeStart = null;
         MarqueeDraft = null;
+        ClearSelectionMove();
     }
 
     public void CancelMarquee()
     {
-        if (MarqueeDraft is not null)
+        if (IsSelectionGestureActive)
         {
             AppLog.Info("Selection", "Marquee cancelled");
         }
 
         _marqueeStart = null;
         MarqueeDraft = null;
+        ClearSelectionMove();
+    }
+
+    public void NudgeSelection(double dx, double dy)
+    {
+        if (Session.Document is { Selection: { } selection } document)
+        {
+            Session.SetSelection(selection.Translated(dx, dy, document.Bounds), "Move Selection");
+        }
+    }
+
+    private void ClearSelectionMove()
+    {
+        _selectionMoveStart = null;
+        _selectionMoveOriginal = null;
+        _selectionPreview = null;
+        Raise(nameof(DisplayedSelection));
+        Raise(nameof(IsSelectionGestureActive));
     }
 
     private void SelectAllPixels()
@@ -472,6 +525,13 @@ public sealed class EditorViewModel : ObservableObject
         var snapshot = ProjectStore.Load(path);
         Session.OpenDocument(snapshot.ToDocument(), snapshot.Manifest.ActiveLayerId);
         Path = path;
+        Fit();
+    }
+
+    public void Recover(ProjectSnapshot snapshot)
+    {
+        Session.OpenDocument(snapshot.ToDocument(), snapshot.Manifest.ActiveLayerId, recovered: true);
+        Path = null;
         Fit();
     }
 

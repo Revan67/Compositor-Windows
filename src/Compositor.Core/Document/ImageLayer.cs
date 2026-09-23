@@ -104,6 +104,14 @@ public sealed record LayerMask(ImportedImage Asset)
 }
 
 /// <summary>A selection outline in document pixels, top-left origin.</summary>
+public enum SelectionCombineMode
+{
+    Replace,
+    Add,
+    Subtract,
+    Intersect,
+}
+
 public sealed record DocumentSelection(SKPath Path)
 {
     public bool Antialiased { get; init; } = true;
@@ -131,6 +139,45 @@ public sealed record DocumentSelection(SKPath Path)
         var path = new SKPath();
         path.AddRect(clipped.ToSK());
         return new DocumentSelection(path) { Antialiased = antialiased };
+    }
+
+    public static DocumentSelection? Combine(DocumentSelection? existing, DocumentSelection? shape, SelectionCombineMode mode)
+    {
+        if (mode == SelectionCombineMode.Replace || existing is null)
+        {
+            return shape;
+        }
+
+        if (shape is null)
+        {
+            return mode == SelectionCombineMode.Intersect ? null : existing;
+        }
+
+        using var path = new SKPath(existing.Path);
+        var operation = mode switch
+        {
+            SelectionCombineMode.Add => SKPathOp.Union,
+            SelectionCombineMode.Subtract => SKPathOp.Difference,
+            SelectionCombineMode.Intersect => SKPathOp.Intersect,
+            _ => throw new ArgumentOutOfRangeException(nameof(mode)),
+        };
+        using var combined = path.Op(shape.Path, operation);
+        if (combined.IsEmpty)
+        {
+            return null;
+        }
+
+        return new DocumentSelection(new SKPath(combined)) { Antialiased = existing.Antialiased || shape.Antialiased };
+    }
+
+    public DocumentSelection? Translated(double dx, double dy, Rect documentBounds)
+    {
+        using var moved = new SKPath(Path);
+        moved.Transform(SKMatrix.CreateTranslation((float)dx, (float)dy));
+        using var bounds = new SKPath();
+        bounds.AddRect(documentBounds.ToSK());
+        using var clipped = moved.Op(bounds, SKPathOp.Intersect);
+        return clipped.IsEmpty ? null : new DocumentSelection(new SKPath(clipped)) { Antialiased = Antialiased };
     }
 
     /// <summary>Grayscale coverage at document resolution (white = selected).</summary>

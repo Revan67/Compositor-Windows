@@ -4,6 +4,8 @@ _Drafted 2026-09-19 from Compositor 1.0.4 (`a19db90`). Living document; update a
 
 For the concise current feature matrix and immediate priorities, see [`port-status.md`](port-status.md). The detailed phase notes below include historical snapshots and should not be read as the live status by themselves.
 
+The first-beta cut and exit gates are tracked separately in [`beta-plan.md`](beta-plan.md).
+
 ## Goal
 
 An **independent Windows application**, not a cross-platform build. Compositor 1.0.4's Swift source and tests are the reference design: every feature in the README, ported to C#, with no obligation to read Mac project files or to track later Mac releases. Lightweight to ship: a single self-contained folder or installer, no MSIX, no Windows App SDK, fast startup.
@@ -240,4 +242,4 @@ First increment, runnable:
 - `Compositor.App`: `EditorViewModel` (session + viewport + cached composite + layer rows + commands), `EditorCanvas` (Skia lease; checkerboard, composite with mipmapped shrink / nearest enlarge, pixel grid from 8×, wheel pan, Ctrl+wheel zoom about the pointer, middle/Space drag pan, file drop imports at the drop point), `LayersPanel` (rows top-first with thumbnails, folder indent, clip arrow, mask badge, eye toggle, active highlight; blend mode and opacity for the active layer with a one-undo drag; context menu; bottom actions), `NewCanvasWindow`, rename prompt, discard-changes confirm, menus with Photoshop-style shortcuts (Ctrl+N/O/S/Shift+S, Z/Shift+Z/Y, Shift+N, J, G, [, ], +, -, 0, 1), status bar with zoom readout, command-line files (`.comp` opens; images make a canvas and import).
 - Verified on screen: two images imported, composited at fit zoom, rows and controls populated.
 
-Since this checkpoint, Move/Transform, snapping, the Transform Inspector, Crop, rectangular marquee, basic Brush/Eraser, JPEG export, diagnostics and reproducible Windows publishing have landed. Remaining Phase 2 polish includes advanced layer-list interaction, Canvas/Image Size sheets, project tabs and HEIC/TIFF via WIC. See [`port-status.md`](port-status.md) for the live matrix. Rendering still rebuilds the composite during live brush preview; profile broader-alpha workloads before selecting tile/region invalidation work.
+Since this checkpoint, Move/Transform, snapping, the Transform Inspector, Crop, Canvas/Image Size, rectangular marquee, basic Brush/Eraser, essential multi-select/drag layer interaction, JPEG export, diagnostics and reproducible Windows publishing have landed. Remaining Phase 2 polish includes deeper nested-layer drop affordances, project tabs and HEIC/TIFF via WIC. See [`port-status.md`](port-status.md) for the live matrix. Rendering still rebuilds the composite during live brush preview; the current 4K baseline is tracked in [`stress-baseline.md`](stress-baseline.md).

@@ -1,0 +1,31 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Compositor.App.Dialogs.CanvasSizeWindow"
+        Title="Canvas Size" Width="360" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+  <StackPanel Margin="16" Spacing="10">
+    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
+      <TextBlock Grid.Row="0" Text="Width" VerticalAlignment="Center" Margin="0,0,12,6" />
+      <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="WidthBox" Minimum="1" Maximum="30000" FormatString="0" Margin="0,0,0,6" />
+      <TextBlock Grid.Row="1" Text="Height" VerticalAlignment="Center" Margin="0,0,12,6" />
+      <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="HeightBox" Minimum="1" Maximum="30000" FormatString="0" Margin="0,0,0,6" />
+      <TextBlock Grid.Row="2" Text="Anchor" VerticalAlignment="Center" Margin="0,0,12,6" />
+      <ComboBox Grid.Row="2" Grid.Column="1" x:Name="AnchorBox" SelectedIndex="4" Margin="0,0,0,6">
+        <ComboBoxItem Content="Top left" /><ComboBoxItem Content="Top" /><ComboBoxItem Content="Top right" />
+        <ComboBoxItem Content="Left" /><ComboBoxItem Content="Center" /><ComboBoxItem Content="Right" />
+        <ComboBoxItem Content="Bottom left" /><ComboBoxItem Content="Bottom" /><ComboBoxItem Content="Bottom right" />
+      </ComboBox>
+      <CheckBox Grid.Row="3" Grid.ColumnSpan="2" x:Name="FillBox" Content="Fill added canvas with color" />
+    </Grid>
+    <StackPanel Orientation="Horizontal" Spacing="8" IsEnabled="{Binding #FillBox.IsChecked}">
+      <TextBlock Text="Fill color" VerticalAlignment="Center" />
+      <TextBox x:Name="FillColorBox" Text="#FFFFFF" Width="92" FontFamily="Consolas" />
+      <TextBlock Text="Hex RGB" Foreground="#9A9A9A" FontSize="12" VerticalAlignment="Center" />
+    </StackPanel>
+    <TextBlock x:Name="ErrorText" Foreground="#FF6B6B" FontSize="12" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Content="Cancel" Click="Cancel" IsCancel="True" />
+      <Button Content="Apply" Click="Apply" IsDefault="True" />
+    </StackPanel>
+  </StackPanel>
+</Window>

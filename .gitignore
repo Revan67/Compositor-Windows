@@ -2,6 +2,7 @@
 bin/
 obj/
 TestResults/
+artifacts/
 *.binlog
 
 # IDE and per-user state
