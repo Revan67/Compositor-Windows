@@ -6,13 +6,13 @@ The first Windows beta is a reliability milestone for the implemented editor wor
 
 | Gate | Requirement | State |
 | --- | --- | --- |
-| Core workflow | Create/open/save; layers; masks/clipping; transform; crop; selection; paint/erase; resize; import/export | Working; broader testing required. Layer order uses Up/Down controls or the row context menu; direct drag-and-drop remains follow-up work. |
-| Data safety | Validated atomic save, malformed-project rejection, unsaved-change prompts, crash recovery that never overwrites the source | Implemented; manual recovery UX test pending |
+| Core workflow | Create/open/save; layers; masks/clipping; transform; crop; selection; paint/erase; resize; import/export | Packaged candidate checklist passed. Layer order uses Up/Down controls or the row context menu; direct drag-and-drop remains follow-up work. |
+| Data safety | Validated atomic save, malformed-project rejection, unsaved-change prompts, crash recovery that never overwrites the source | Automated coverage and real-pixel recovery check passed |
 | Performance | Quick stress in CI; full 4K/800 px workload passes exact round-trip without runaway memory; broader hardware results reviewed | Local candidate gate passed; broader hardware results pending |
 | Diagnostics | Build identity, commands, edits, tools, paint, project I/O, recovery and exceptions are reconstructable | Implemented |
-| UI readiness | Essential actions reachable, consistent enabled states/shortcuts, no dead primary controls, usable error messages | Canvas/Image Size and essential Layers interaction implemented; final hands-on checklist pending |
+| UI readiness | Essential actions reachable, consistent enabled states/shortcuts, no dead primary controls, usable error messages | Packaged candidate checklist passed; documented drag-reorder limitation remains |
 | Distribution | Clean self-contained x64 ZIP, native smoke test, tester guide and checksum; explicitly unsigned beta | `0.9.0-beta.1` candidate generated and locally verified; not published |
-| Quality | Zero known data-loss/crash defects; Release suite and beta checklist green | In progress |
+| Quality | Zero known data-loss/crash defects; Release suite and beta checklist green | Local beta gate passed on 2026-09-22 |
 
 ## Work order
 

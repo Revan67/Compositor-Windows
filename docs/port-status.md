@@ -43,4 +43,4 @@ _Updated 2026-09-22. This is the concise live status; `windows-port-plan.md` ret
 
 ## Quality gate
 
-The current solution has 161 automated tests. A handoff build must also complete a clean Release build, pass the full stress workload, publish successfully, pass x64 native DLL loading/export checks, and include `BETA-TESTING.md` plus a SHA-256 checksum. No public release is authorized yet.
+The `0.9.0-beta.1` candidate passed 161 automated tests, the full 4K stress workload, packaged x64 native DLL loading/export checks, real-pixel crash recovery, and the hands-on beta checklist on 2026-09-22. Its portable ZIP includes `BETA-TESTING.md` and has a SHA-256 checksum. No public release is authorized yet.
