@@ -2,7 +2,60 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Compositor.App.App"
              RequestedThemeVariant="Dark">
+  <Application.Resources>
+    <ResourceDictionary>
+      <Color x:Key="SystemAccentColor">#A84CC4</Color>
+      <Color x:Key="SystemAccentColorLight1">#BE6BD4</Color>
+      <Color x:Key="SystemAccentColorDark1">#873B9E</Color>
+      <SolidColorBrush x:Key="ChromeBrush" Color="#202124" />
+      <SolidColorBrush x:Key="PanelBrush" Color="#25262A" />
+      <SolidColorBrush x:Key="RaisedBrush" Color="#2D2E33" />
+      <SolidColorBrush x:Key="InputBrush" Color="#1C1D20" />
+      <SolidColorBrush x:Key="CanvasSurroundBrush" Color="#17181A" />
+      <SolidColorBrush x:Key="DividerBrush" Color="#393A40" />
+      <SolidColorBrush x:Key="PrimaryTextBrush" Color="#F0F0F2" />
+      <SolidColorBrush x:Key="SecondaryTextBrush" Color="#A6A7AD" />
+      <SolidColorBrush x:Key="AccentBrush" Color="#A84CC4" />
+      <SolidColorBrush x:Key="AccentMutedBrush" Color="#563260" />
+    </ResourceDictionary>
+  </Application.Resources>
   <Application.Styles>
-    <FluentTheme />
+    <FluentTheme DensityStyle="Compact" />
+    <Style Selector="Window">
+      <Setter Property="Background" Value="{StaticResource ChromeBrush}" />
+      <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+      <Setter Property="FontFamily" Value="Inter, Segoe UI" />
+    </Style>
+    <Style Selector="Button">
+      <Setter Property="MinHeight" Value="28" />
+      <Setter Property="Padding" Value="12,4" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="Button.accent">
+      <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="TextBox, NumericUpDown, ComboBox">
+      <Setter Property="MinHeight" Value="28" />
+      <Setter Property="Background" Value="{StaticResource InputBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource DividerBrush}" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="Menu">
+      <Setter Property="Background" Value="{StaticResource ChromeBrush}" />
+    </Style>
+    <Style Selector="MenuItem">
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="ToolTip">
+      <Setter Property="Background" Value="#F02A2B2F" />
+      <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TextBlock.secondary">
+      <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+    </Style>
   </Application.Styles>
 </Application>

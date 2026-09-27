@@ -8,6 +8,41 @@ namespace Compositor.App.Tests;
 public sealed class CanvasInteractionTests
 {
     [Fact]
+    public void ZoomToolExposesPersistentInAndOutModes()
+    {
+        var viewModel = new EditorViewModel();
+        viewModel.NewCanvas(100, 80);
+        viewModel.Tool = EditorTool.Zoom;
+
+        Assert.True(viewModel.ShowsZoomControls);
+        Assert.True(viewModel.ZoomInMode);
+        Assert.False(viewModel.ZoomOutMode);
+
+        var initialZoom = viewModel.Viewport.Zoom;
+        viewModel.ZoomOutMode = true;
+        viewModel.ZoomOut.Execute(null);
+        Assert.False(viewModel.ZoomInMode);
+        Assert.True(viewModel.ZoomOutMode);
+        Assert.True(viewModel.Viewport.Zoom < initialZoom);
+
+        viewModel.ZoomInMode = true;
+        viewModel.ZoomIn.Execute(null);
+        Assert.True(viewModel.ZoomInMode);
+        Assert.False(viewModel.ZoomOutMode);
+        Assert.Equal(initialZoom, viewModel.Viewport.Zoom, 10);
+    }
+
+    [Theory]
+    [InlineData(false, false, 2)]
+    [InlineData(false, true, 0.5)]
+    [InlineData(true, false, 0.5)]
+    [InlineData(true, true, 2)]
+    public void AltTemporarilyReversesZoomClickMode(bool zoomOutMode, bool altPressed, double expected)
+    {
+        Assert.Equal(expected, EditorViewModel.ZoomClickFactor(zoomOutMode, altPressed));
+    }
+
+    [Fact]
     public void BeginningAnotherEditClearsThePreviousInteraction()
     {
         var state = new CanvasEditInteraction();

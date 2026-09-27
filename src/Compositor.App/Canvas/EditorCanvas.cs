@@ -290,7 +290,8 @@ public sealed class EditorCanvas : Control
         var view = point.Position.ToCore();
         if (_vm.Tool == EditorTool.Zoom)
         {
-            _vm.SetZoom(_vm.Viewport.Zoom * (e.KeyModifiers.HasFlag(KeyModifiers.Alt) ? 0.5 : 2), view);
+            var factor = EditorViewModel.ZoomClickFactor(_vm.ZoomOutMode, e.KeyModifiers.HasFlag(KeyModifiers.Alt));
+            _vm.SetZoom(_vm.Viewport.Zoom * factor, view);
             e.Handled = true;
             return;
         }

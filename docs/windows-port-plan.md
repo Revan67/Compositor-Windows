@@ -1,6 +1,6 @@
 # Compositor — Windows port plan
 
-_Drafted 2026-09-19 from Compositor 1.0.4 (`a19db90`). Living document; update as decisions land. Upstream through 1.1.4 (`611894a`) was reviewed on 2026-09-20 as reference material only; this project remains an independent rewrite._
+_Drafted 2026-09-19 from Compositor 1.0.4 (`a19db90`). Living document; update as decisions land. Upstream through 1.2.9 (`01e8e52`) was reviewed on 2026-09-23 as reference material only; this project remains an independent rewrite._
 
 For the concise current feature matrix and immediate priorities, see [`port-status.md`](port-status.md). The detailed phase notes below include historical snapshots and should not be read as the live status by themselves.
 
@@ -170,7 +170,7 @@ The existing Core and project-file tests remain release gates. New exhaustive nu
   - **Verification:** maintain generated fixtures and a corpus of real PSD/PSB files; test open, export, reopen and composite equivalence. Cross-check exported files in at least two independent PSD readers. Malformed files must fail safely without replacing the current document.
 - **Remove Background**: ONNX Runtime (CPU, DirectML optional) + RMBG-1.4 or ISNet-general. Model downloaded on first use into `%LOCALAPPDATA%\Compositor\models`. Same UX as the reference (menu item, undoable).
 - **GPU brush**: only if profiling the software path on a 4K canvas / 800 px tip shows it above the reference numbers in `docs/brush-performance.md` (2.6–3.1 ms median). ComputeSharp (D3D12) port of the Metal kernel; keep the software path as fallback.
-- **Updater via GitHub Releases.** On launch (and from Help → Check for Updates) call `GET https://api.github.com/repos/Revan67/Compositor-Windows/releases/latest`, compare the tag to the running version, and offer to download the release asset (installer or zip) and run/replace. Unauthenticated API is rate-limited to 60 req/h per IP, which is plenty for once-per-launch. Verify the asset with a SHA-256 listed in the release notes before running it. No appcast, no server.
+- **Updater via GitHub Releases.** On launch (and from Help → Check for Updates) query the releases list, compare semantic versions, and select the package for the running architecture. Prerelease builds accept newer prereleases or stable releases; stable builds ignore prereleases. The portable updater downloads only after confirmation, requires the exact companion `.sha256` asset, verifies the ZIP, and stages it under `%LOCALAPPDATA%` for manual replacement after Compositor closes. It never overwrites the running folder. No appcast or server.
 - Release pipeline: `dotnet publish -r win-x64 --self-contained` (arm64 too), Inno Setup installer + plain zip, uploaded as release assets by a GitHub Actions workflow on tag push.
 - File associations (`.comp`, images), "Open with", drag onto exe.
 - High-DPI, multi-monitor, per-monitor scaling; Windows 11 dark title bar.
@@ -187,7 +187,7 @@ The existing Core and project-file tests remain release gates. New exhaustive nu
 | **Brush latency on CPU** | Feels worse than the reference on large soft tips | Tile-parallel software path (`Parallel.For` over dirty tiles), then Phase 4 GPU if needed. Measure with the same 4K/800 px benchmark. |
 | **No reference app to run** | Can't compare against real output | Fixtures from the spec; Swift test assertions as the oracle (see Verification). |
 | **Test-suite translation** | 7k lines of tests are the real spec; skipping them reintroduces the recurring "vacuous test" problem | One C# test class per reference suite, same names. Track coverage as a checklist in `docs/port-status.md`. |
-| **Updater trust** | Running a downloaded exe | HTTPS to api.github.com only, SHA-256 from release notes checked before launch, user confirms. Optional: Authenticode-sign the installer. |
+| **Updater trust** | Installing downloaded code | HTTPS GitHub API/release URLs only, exact companion SHA-256 asset checked before staging, and explicit user confirmation. The portable updater does not execute or overwrite anything; a future installer should be Authenticode-signed. |
 | **Fonts / SF Symbols** | Tool icons are SF Symbols names | Fluent System Icons or Lucide for the 15 tool glyphs. |
 
 ## Not in scope

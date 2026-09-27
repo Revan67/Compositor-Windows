@@ -25,6 +25,7 @@ public sealed class EditorViewModel : ObservableObject
     private LayerRowViewModel? _selectedRow;
     private bool _syncingSelection;
     private EditorTool _tool = EditorTool.Move;
+    private bool _zoomOutMode;
     private Compositor.Core.Geometry.Rect? _marqueeDraft;
     private Point? _marqueeStart;
     private SelectionCombineMode _marqueeMode;
@@ -65,10 +66,10 @@ public sealed class EditorViewModel : ObservableObject
         ToggleMask = new RelayCommand(Session.ToggleLayerMask, () => Session.ActiveLayer?.Mask is not null, "Layer.ToggleMask");
         DeleteMask = new RelayCommand(Session.DeleteLayerMask, () => Session.ActiveLayer?.Mask is not null, "Layer.DeleteMask");
         ToggleClipping = new RelayCommand(() => Session.ToggleClippingMask(Session.ActiveLayerId!.Value), () => Session.ActiveLayerId is { } id && Session.CanToggleClippingMask(id), "Layer.ToggleClipping");
-        ZoomIn = new RelayCommand(() => ZoomBy(2), () => Session.Document is not null);
-        ZoomOut = new RelayCommand(() => ZoomBy(0.5), () => Session.Document is not null);
-        ActualSize = new RelayCommand(() => SetZoom(1), () => Session.Document is not null);
-        FitToWindow = new RelayCommand(Fit, () => Session.Document is not null);
+        ZoomIn = new RelayCommand(() => ZoomBy(2), () => Session.Document is not null, "View.ZoomIn");
+        ZoomOut = new RelayCommand(() => ZoomBy(0.5), () => Session.Document is not null, "View.ZoomOut");
+        ActualSize = new RelayCommand(() => SetZoom(1), () => Session.Document is not null, "View.ActualSize");
+        FitToWindow = new RelayCommand(Fit, () => Session.Document is not null, "View.FitToWindow");
     }
 
     public EditorSession Session { get; } = new();
@@ -132,6 +133,7 @@ public sealed class EditorViewModel : ObservableObject
                 Raise(nameof(ShowsCropControls));
                 Raise(nameof(ShowsSelectionControls));
                 Raise(nameof(ShowsBrushControls));
+                Raise(nameof(ShowsZoomControls));
                 Raise(nameof(OverlayGeometry));
             }
         }
@@ -158,6 +160,32 @@ public sealed class EditorViewModel : ObservableObject
     public bool ShowsSelectionControls => Tool == EditorTool.Marquee && HasDocument;
 
     public bool ShowsBrushControls => Tool is EditorTool.Brush or EditorTool.Eraser && HasDocument;
+
+    public bool ShowsZoomControls => Tool == EditorTool.Zoom && HasDocument;
+
+    public bool ZoomInMode
+    {
+        get => !_zoomOutMode;
+        set
+        {
+            if (value) ZoomOutMode = false;
+        }
+    }
+
+    public bool ZoomOutMode
+    {
+        get => _zoomOutMode;
+        set
+        {
+            if (Set(ref _zoomOutMode, value))
+            {
+                AppLog.Info("Viewport", $"Zoom tool mode={(value ? "out" : "in")}");
+                Raise(nameof(ZoomInMode));
+            }
+        }
+    }
+
+    internal static double ZoomClickFactor(bool zoomOutMode, bool altPressed) => zoomOutMode ^ altPressed ? 0.5 : 2;
 
     public double BrushSize
     {
@@ -574,7 +602,9 @@ public sealed class EditorViewModel : ObservableObject
         return failures;
     }
 
-    public byte[] ExportPng() => ImageCodec.EncodePng(Composite!, Session.Document!.Resolution);
+    public byte[] ExportPng() => ExportPng(new PngOptions());
+
+    public byte[] ExportPng(PngOptions options) => ImageCodec.EncodePng(Composite!, options, Session.Document!.Resolution);
 
     public byte[] ExportJpeg(JpegOptions options) => ImageCodec.EncodeJpeg(Composite!, options, Session.Document!.Resolution);
 
@@ -625,6 +655,7 @@ public sealed class EditorViewModel : ObservableObject
         Raise(nameof(CropFrame));
         Raise(nameof(ShowsSelectionControls));
         Raise(nameof(ShowsBrushControls));
+        Raise(nameof(ShowsZoomControls));
         Raise(nameof(SelectionFrame));
         Inspector.Refresh();
     }

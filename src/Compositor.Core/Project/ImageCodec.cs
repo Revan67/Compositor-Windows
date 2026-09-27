@@ -27,6 +27,9 @@ public sealed class ImageImportException(ImageImportError error) : Exception(Des
 /// <summary>JPEG export settings: quality and the matte that replaces transparency.</summary>
 public readonly record struct JpegOptions(double Quality = 0.85, double Red = 1, double Green = 1, double Blue = 1);
 
+/// <summary>PNG export settings. Compression changes file size and encode time, never image quality.</summary>
+public readonly record struct PngOptions(int CompressionLevel = 6);
+
 /// <summary>Image files in and out: decoding to the working format, encoding with resolution metadata.</summary>
 public static class ImageCodec
 {
@@ -99,10 +102,14 @@ public static class ImageCodec
     }
 
     /// <summary>PNG with alpha and a <c>pHYs</c> chunk carrying <paramref name="dpi"/>.</summary>
-    public static byte[] EncodePng(SKBitmap image, double dpi = 72)
+    public static byte[] EncodePng(SKBitmap image, double dpi = 72) => EncodePng(image, new PngOptions(), dpi);
+
+    /// <summary>PNG with alpha, selectable lossless zlib compression, and a <c>pHYs</c> resolution chunk.</summary>
+    public static byte[] EncodePng(SKBitmap image, PngOptions options, double dpi = 72)
     {
-        using var wrapped = image.AsImage();
-        using var data = wrapped.Encode(SKEncodedImageFormat.Png, 100) ?? throw new InvalidOperationException("The image could not be encoded.");
+        using var pixmap = image.PeekPixels();
+        using var data = pixmap.Encode(new SKPngEncoderOptions(SKPngEncoderFilterFlags.AllFilters, Math.Clamp(options.CompressionLevel, 0, 9)))
+            ?? throw new InvalidOperationException("The image could not be encoded.");
         return WithPngResolution(data.ToArray(), dpi);
     }
 

@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Compositor.App.Dialogs.ExportOptionsWindow"
+        Title="Export Options" Width="390" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+  <StackPanel Margin="18" Spacing="14">
+    <TextBlock x:Name="Heading" FontSize="16" FontWeight="SemiBold" />
+    <StackPanel x:Name="JpegPanel" Spacing="8">
+      <Grid ColumnDefinitions="*,76">
+        <TextBlock Text="Quality" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Column="1" x:Name="QualityBox" Minimum="1" Maximum="100" Value="85" Increment="1" FormatString="0" ShowButtonSpinner="False" />
+      </Grid>
+      <Slider Minimum="1" Maximum="100" Value="{Binding #QualityBox.Value, Mode=TwoWay}" />
+      <TextBlock Classes="secondary" FontSize="12" TextWrapping="Wrap" Text="Lower quality produces a smaller file. JPEG is lossy and replaces transparency with white." />
+    </StackPanel>
+    <StackPanel x:Name="PngPanel" Spacing="8">
+      <Grid ColumnDefinitions="*,76">
+        <TextBlock Text="Compression level" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Column="1" x:Name="CompressionBox" Minimum="0" Maximum="9" Value="6" Increment="1" FormatString="0" ShowButtonSpinner="False" />
+      </Grid>
+      <Slider Minimum="0" Maximum="9" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding #CompressionBox.Value, Mode=TwoWay}" />
+      <TextBlock Classes="secondary" FontSize="12" TextWrapping="Wrap" Text="0 is fastest; 9 usually produces the smallest file. PNG compression is lossless and does not change image quality." />
+    </StackPanel>
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Content="Cancel" Click="Cancel" IsCancel="True" />
+      <Button Classes="accent" Content="Continue" Click="Accept" IsDefault="True" />
+    </StackPanel>
+  </StackPanel>
+</Window>

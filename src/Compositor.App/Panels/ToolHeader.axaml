@@ -10,13 +10,15 @@
       <Setter Property="ShowButtonSpinner" Value="False" />
     </Style>
     <Style Selector="TextBlock.label">
-      <Setter Property="Foreground" Value="#9A9A9A" />
+      <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
       <Setter Property="FontSize" Value="12" />
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="Margin" Value="10,0,4,0" />
     </Style>
   </UserControl.Styles>
-  <Grid Height="36" Background="#2D2D30">
+  <Grid Height="42" Background="{StaticResource RaisedBrush}">
+    <TextBlock Text="{Binding Tool}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0"
+               FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}" />
     <StackPanel Orientation="Horizontal" Margin="8,0" DataContext="{Binding Inspector}" x:DataType="vm:TransformInspectorViewModel" IsEnabled="{Binding IsEnabled}" IsVisible="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).ShowsTransformControls}">
       <TextBlock Classes="label" Text="X" />
       <NumericUpDown Value="{Binding X}" FormatString="0.##" />
@@ -38,7 +40,7 @@
     <StackPanel Orientation="Horizontal" Margin="8,0" VerticalAlignment="Center" IsVisible="{Binding ShowsCropControls}">
       <TextBlock Classes="label" Text="Ratio" />
       <ComboBox ItemsSource="{Binding CropRatioChoices}" SelectedItem="{Binding CropRatioChoice}" Width="110" />
-      <Button Content="Commit" Command="{Binding CropCommit}" Margin="12,0,0,0" Padding="12,4" />
+      <Button Classes="accent" Content="Commit" Command="{Binding CropCommit}" Margin="12,0,0,0" Padding="12,4" />
       <Button Content="Cancel" Command="{Binding CropCancel}" Margin="6,0,0,0" Padding="12,4" />
       <TextBlock Classes="label" Text="Drag outside to create · Alt resizes symmetrically · Enter commits · Esc cancels" />
     </StackPanel>
@@ -58,6 +60,16 @@
       <TextBlock Classes="label" Text="Color" />
       <TextBox Text="{Binding BrushColorHex}" Width="82" FontFamily="Consolas" />
       <TextBlock Classes="label" Text="Shift-click draws a line · selection clips strokes" />
+    </StackPanel>
+    <StackPanel Orientation="Horizontal" Margin="10,0" VerticalAlignment="Center" Spacing="6" IsVisible="{Binding ShowsZoomControls}">
+      <TextBlock Classes="label" Text="Zoom mode" Margin="0,0,4,0" />
+      <RadioButton GroupName="zoomMode" Content="＋ Zoom In" Theme="{StaticResource {x:Type ToggleButton}}"
+                   IsChecked="{Binding ZoomInMode}" Command="{Binding ZoomIn}" Padding="12,4" ToolTip.Tip="Zoom in one step; canvas clicks will zoom in" />
+      <RadioButton GroupName="zoomMode" Content="− Zoom Out" Theme="{StaticResource {x:Type ToggleButton}}"
+                   IsChecked="{Binding ZoomOutMode}" Command="{Binding ZoomOut}" Padding="12,4" ToolTip.Tip="Zoom out one step; canvas clicks will zoom out" />
+      <Button Content="Fit Screen" Command="{Binding FitToWindow}" Margin="8,0,0,0" />
+      <Button Content="100%" Command="{Binding ActualSize}" />
+      <TextBlock Classes="label" Text="Alt temporarily reverses the selected mode" />
     </StackPanel>
   </Grid>
 </UserControl>

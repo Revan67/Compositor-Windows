@@ -2,8 +2,10 @@ using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using System.Diagnostics;
+using System.Text.Json;
 using Compositor.App.Dialogs;
 using Compositor.App.Diagnostics;
+using Compositor.App.Updates;
 using Compositor.App.ViewModels;
 using Compositor.Core.Document;
 using Compositor.Core.Project;
@@ -29,6 +31,7 @@ public sealed partial class MainWindow : Window
         ExportJpegCommand = new AsyncRelayCommand(() => ExportAsync(jpeg: true), () => Vm.HasDocument, Unexpected, "File.ExportJpeg");
         CanvasSizeCommand = new AsyncRelayCommand(CanvasSizeAsync, () => Vm.HasDocument, Unexpected, "Image.CanvasSize");
         ImageSizeCommand = new AsyncRelayCommand(ImageSizeAsync, () => Vm.HasDocument, Unexpected, "Image.ImageSize");
+        CheckForUpdatesCommand = new AsyncRelayCommand(() => CheckForUpdatesAsync(manual: true), onError: Unexpected, name: "Help.CheckForUpdates");
         OpenLogsCommand = new RelayCommand(OpenLogs, name: "Help.OpenLogs");
         ExitCommand = new RelayCommand(Close, name: "File.Exit");
         InitializeComponent();
@@ -82,6 +85,8 @@ public sealed partial class MainWindow : Window
     private CanvasDocument? _lastRecoveryDocument;
     private bool _recoverySaving;
     private int _recoveryEpoch;
+    private bool _checkingForUpdates;
+    private readonly UpdateService _updateService = new();
 
     public EditorViewModel Vm { get; } = new();
 
@@ -94,6 +99,7 @@ public sealed partial class MainWindow : Window
     public AsyncRelayCommand ExportJpegCommand { get; }
     public AsyncRelayCommand CanvasSizeCommand { get; }
     public AsyncRelayCommand ImageSizeCommand { get; }
+    public AsyncRelayCommand CheckForUpdatesCommand { get; }
     public RelayCommand OpenLogsCommand { get; }
     public RelayCommand ExitCommand { get; }
 
@@ -103,6 +109,61 @@ public sealed partial class MainWindow : Window
         Process.Start(new ProcessStartInfo("explorer.exe", AppLog.LogDirectory) { UseShellExecute = true });
         Status.Text = $"Logs: {AppLog.LogDirectory}";
         AppLog.Info("Diagnostics", "Opened logs folder");
+    }
+
+    public async Task CheckForUpdatesAsync(bool manual)
+    {
+        if (_checkingForUpdates)
+        {
+            return;
+        }
+
+        _checkingForUpdates = true;
+        try
+        {
+            if (manual) Status.Text = "Checking for updates…";
+            AppLog.Info("Updater", $"Checking GitHub Releases; current={_updateService.CurrentVersion}; manual={manual}");
+            var release = await _updateService.CheckAsync();
+            if (release is null)
+            {
+                if (manual) Status.Text = $"Compositor {_updateService.CurrentVersion} is up to date";
+                AppLog.Info("Updater", "No applicable newer release found");
+                return;
+            }
+
+            AppLog.Info("Updater", $"Update available; tag={release.Tag}; prerelease={release.IsPreRelease}; asset={release.Package.Name}");
+            var channel = release.IsPreRelease ? "prerelease" : "release";
+            var download = await ConfirmDialog.ShowAsync(this, "Compositor Update Available",
+                $"{release.Name} is available ({channel}). Download the verified portable update now?\n\nYour current folder will not be changed. Compositor will stage the ZIP and ask you to close the app before replacing files.", "Download");
+            if (!download)
+            {
+                Status.Text = $"Update {release.Tag} available";
+                return;
+            }
+
+            Status.Text = $"Downloading {release.Tag}…";
+            var progress = new Progress<double>(value => Status.Text = $"Downloading {release.Tag}… {value:P0}");
+            var path = await _updateService.DownloadAsync(release, progress);
+            Status.Text = $"Verified update downloaded: {Path.GetFileName(path)}";
+            AppLog.Info("Updater", $"Verified update staged at {path}");
+            var open = await ConfirmDialog.ShowAsync(this, "Update Ready",
+                $"The update was downloaded and its SHA-256 checksum was verified.\n\nClose Compositor, extract the ZIP, and replace the old portable folder. Your projects and diagnostic logs are stored separately.\n\n{path}", "Open Folder", "Later");
+            if (open)
+            {
+                var start = new ProcessStartInfo("explorer.exe") { UseShellExecute = true };
+                start.ArgumentList.Add($"/select,{path}");
+                Process.Start(start);
+            }
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException or JsonException)
+        {
+            AppLog.Error("Updater", "Update check or download failed", e);
+            if (manual) Status.Text = $"Could not check for updates: {e.Message}";
+        }
+        finally
+        {
+            _checkingForUpdates = false;
+        }
     }
 
     private async Task NewCanvasAsync()
@@ -207,6 +268,12 @@ public sealed partial class MainWindow : Window
 
     private async Task ExportAsync(bool jpeg)
     {
+        var options = await ExportOptionsWindow.ShowAsync(this, jpeg);
+        if (options is null)
+        {
+            return;
+        }
+
         var type = jpeg ? new FilePickerFileType("JPEG") { Patterns = ["*.jpg"] } : new FilePickerFileType("PNG") { Patterns = ["*.png"] };
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -222,9 +289,12 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            await File.WriteAllBytesAsync(path, jpeg ? Vm.ExportJpeg(new JpegOptions()) : Vm.ExportPng());
+            var bytes = jpeg
+                ? Vm.ExportJpeg(new JpegOptions(options.Value.JpegQuality / 100.0))
+                : Vm.ExportPng(new PngOptions(options.Value.PngCompression));
+            await File.WriteAllBytesAsync(path, bytes);
             Status.Text = $"Exported {Path.GetFileName(path)}";
-            AppLog.Info("Export", $"Exported {(jpeg ? "JPEG" : "PNG")} {path}");
+            AppLog.Info("Export", $"Exported {(jpeg ? $"JPEG quality={options.Value.JpegQuality}" : $"PNG compression={options.Value.PngCompression}")} {path}");
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
         {

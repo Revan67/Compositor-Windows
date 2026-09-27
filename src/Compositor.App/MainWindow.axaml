@@ -7,8 +7,8 @@
         x:Name="Root"
         x:DataType="vm:EditorViewModel"
         Title="{Binding Title}"
-        Width="1180" Height="780" MinWidth="720" MinHeight="480"
-        Background="#1E1E1E">
+        Width="1024" Height="700" MinWidth="760" MinHeight="520"
+        Background="{StaticResource ChromeBrush}">
   <Window.KeyBindings>
     <KeyBinding Gesture="Ctrl+N" Command="{Binding #Root.NewCanvasCommand}" />
     <KeyBinding Gesture="Ctrl+O" Command="{Binding #Root.OpenCommand}" />
@@ -31,7 +31,7 @@
   </Window.KeyBindings>
 
   <DockPanel>
-    <Menu DockPanel.Dock="Top" Background="#2D2D30">
+    <Menu DockPanel.Dock="Top" Background="{StaticResource ChromeBrush}" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,1">
       <MenuItem Header="_File">
         <MenuItem Header="New Canvas…" InputGesture="Ctrl+N" Command="{Binding #Root.NewCanvasCommand}" />
         <MenuItem Header="Open Project…" InputGesture="Ctrl+O" Command="{Binding #Root.OpenCommand}" />
@@ -79,22 +79,28 @@
         <MenuItem Header="Actual Pixels" InputGesture="Ctrl+1" Command="{Binding ActualSize}" />
       </MenuItem>
       <MenuItem Header="_Help">
+        <MenuItem Header="Check for Updates…" Command="{Binding #Root.CheckForUpdatesCommand}" />
+        <Separator />
         <MenuItem Header="Open Diagnostic Logs" Command="{Binding #Root.OpenLogsCommand}" />
       </MenuItem>
     </Menu>
 
-    <Border DockPanel.Dock="Bottom" Background="#2D2D30" Height="24">
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource ChromeBrush}" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,1,0,0" Height="26">
       <DockPanel Margin="10,0">
-        <TextBlock DockPanel.Dock="Right" Text="{Binding ZoomPercent}" Foreground="#9A9A9A" FontSize="12" VerticalAlignment="Center" />
-        <TextBlock x:Name="Status" Foreground="#9A9A9A" FontSize="12" VerticalAlignment="Center" />
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
+          <Button Command="{Binding ZoomOut}" Content="−" ToolTip.Tip="Zoom Out (Ctrl+-)" Width="22" Height="20" MinHeight="20" Padding="0" Background="Transparent" />
+          <TextBlock Text="{Binding ZoomPercent}" Foreground="{StaticResource SecondaryTextBrush}" Width="46" TextAlignment="Center" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button Command="{Binding ZoomIn}" Content="+" ToolTip.Tip="Zoom In (Ctrl++)" Width="22" Height="20" MinHeight="20" Padding="0" Background="Transparent" />
+        </StackPanel>
+        <TextBlock x:Name="Status" Foreground="{StaticResource SecondaryTextBrush}" FontSize="11" VerticalAlignment="Center" />
       </DockPanel>
     </Border>
 
     <panels:ToolHeader DockPanel.Dock="Top" />
     <panels:ToolRail DockPanel.Dock="Left" />
-    <Grid ColumnDefinitions="*,4,280">
+    <Grid ColumnDefinitions="*,3,288" Background="{StaticResource CanvasSurroundBrush}">
       <canvas:EditorCanvas x:Name="Canvas" Grid.Column="0" />
-      <GridSplitter Grid.Column="1" Background="#2D2D30" ResizeDirection="Columns" />
+      <GridSplitter Grid.Column="1" Background="{StaticResource DividerBrush}" ResizeDirection="Columns" />
       <panels:LayersPanel Grid.Column="2" />
     </Grid>
   </DockPanel>

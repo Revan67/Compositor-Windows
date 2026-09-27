@@ -5,25 +5,27 @@
              x:DataType="vm:EditorViewModel">
   <UserControl.Styles>
     <Style Selector="RadioButton.tool">
-      <Setter Property="Width" Value="36" />
-      <Setter Property="Height" Value="36" />
-      <Setter Property="Margin" Value="2" />
+      <Setter Property="Width" Value="38" />
+      <Setter Property="Height" Value="38" />
+      <Setter Property="Margin" Value="3,2" />
       <Setter Property="Padding" Value="0" />
       <Setter Property="HorizontalContentAlignment" Value="Center" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
-      <Setter Property="FontSize" Value="16" />
+      <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="CornerRadius" Value="5" />
       <Setter Property="Theme" Value="{StaticResource {x:Type ToggleButton}}" />
     </Style>
   </UserControl.Styles>
-  <Border Background="#252526" Width="44">
-    <StackPanel Margin="2,6">
-      <RadioButton Classes="tool" GroupName="tool" Content="✥" ToolTip.Tip="Move / Transform (V)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Move}}" />
-      <RadioButton Classes="tool" GroupName="tool" Content="⌗" ToolTip.Tip="Crop (C)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Crop}}" />
-      <RadioButton Classes="tool" GroupName="tool" Content="▧" ToolTip.Tip="Rectangular Marquee (M)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Marquee}}" />
-      <RadioButton Classes="tool" GroupName="tool" Content="●" ToolTip.Tip="Brush (B)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Brush}}" />
-      <RadioButton Classes="tool" GroupName="tool" Content="◒" ToolTip.Tip="Eraser (E)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Eraser}}" />
-      <RadioButton Classes="tool" GroupName="tool" Content="✋" ToolTip.Tip="Hand (H)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Hand}}" />
-      <RadioButton Classes="tool" GroupName="tool" Content="🔍" ToolTip.Tip="Zoom (Z) — Alt-click zooms out" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Zoom}}" />
+  <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,1,0" Width="46">
+    <StackPanel Margin="1,5">
+      <RadioButton Classes="tool" GroupName="tool" Content="&#xE7C2;" ToolTip.Tip="Move / Transform (V)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Move}}" />
+      <RadioButton Classes="tool" GroupName="tool" Content="&#xE7A8;" ToolTip.Tip="Crop (C)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Crop}}" />
+      <RadioButton Classes="tool" GroupName="tool" Content="&#xE762;" ToolTip.Tip="Rectangular Marquee (M)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Marquee}}" />
+      <RadioButton Classes="tool" GroupName="tool" Content="&#xE790;" ToolTip.Tip="Brush (B)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Brush}}" />
+      <RadioButton Classes="tool" GroupName="tool" Content="&#xE75C;" ToolTip.Tip="Eraser (E)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Eraser}}" />
+      <RadioButton Classes="tool" GroupName="tool" Content="&#xE765;" ToolTip.Tip="Hand (H)" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Hand}}" />
+      <RadioButton Classes="tool" GroupName="tool" Content="&#xE71E;" ToolTip.Tip="Zoom (Z) — Alt-click zooms out" IsChecked="{Binding Tool, Converter={x:Static vm:Converters.ToolIs}, ConverterParameter={x:Static vm:EditorTool.Zoom}}" />
     </StackPanel>
   </Border>
 </UserControl>

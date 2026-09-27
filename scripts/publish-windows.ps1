@@ -8,6 +8,10 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $runtime = "win-$Arch"
 $output = Join-Path $repoRoot "dist\$runtime"
+$buildProps = [xml](Get-Content -LiteralPath (Join-Path $repoRoot "Directory.Build.props") -Raw)
+$versionPrefix = $buildProps.SelectSingleNode("/Project/PropertyGroup/VersionPrefix").InnerText
+$versionSuffixNode = $buildProps.SelectSingleNode("/Project/PropertyGroup/VersionSuffix")
+$packageVersion = if ($null -ne $versionSuffixNode -and $versionSuffixNode.InnerText) { "$versionPrefix-$($versionSuffixNode.InnerText)" } else { $versionPrefix }
 
 if (Test-Path -LiteralPath $output) {
     Remove-Item -LiteralPath $output -Recurse -Force
@@ -33,7 +37,7 @@ if (Test-Path -LiteralPath $betaGuide) {
     Copy-Item -LiteralPath $betaGuide -Destination (Join-Path $output "BETA-TESTING.md") -Force
 }
 
-$zip = Join-Path $repoRoot "dist\Compositor-0.9.0-beta.1-$runtime.zip"
+$zip = Join-Path $repoRoot "dist\Compositor-$packageVersion-$runtime.zip"
 Compress-Archive -Path (Join-Path $output "*") -DestinationPath $zip -Force
 $hash = Get-FileHash -LiteralPath $zip -Algorithm SHA256
 Set-Content -LiteralPath "$zip.sha256" -Value "$($hash.Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($zip))"

@@ -17,12 +17,16 @@ public sealed class App : Application
             window.Opened += async (_, _) =>
             {
                 var args = desktop.Args ?? [];
-                if (args.Length == 0 && await window.RecoverIfAvailableAsync())
+                if (args.Length == 0)
                 {
-                    return;
+                    await window.RecoverIfAvailableAsync();
+                }
+                else
+                {
+                    window.OpenFromCommandLine(args);
                 }
 
-                window.OpenFromCommandLine(args);
+                await window.CheckForUpdatesAsync(manual: false);
             };
         }
 

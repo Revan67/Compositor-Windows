@@ -156,6 +156,27 @@ public sealed class ImageCodecTests
     }
 
     [Fact]
+    public void PngCompressionChangesSizeWithoutChangingPixels()
+    {
+        using var patterned = Bitmaps.Create(256, 256, mask: false);
+        for (var y = 0; y < patterned.Height; y++)
+        {
+            for (var x = 0; x < patterned.Width; x++)
+            {
+                patterned.SetPixel(x, y, ((x / 16) + (y / 16)) % 2 == 0 ? SKColors.MediumPurple : SKColors.DarkSlateBlue);
+            }
+        }
+
+        var fast = ImageCodec.EncodePng(patterned, new PngOptions(0));
+        var compact = ImageCodec.EncodePng(patterned, new PngOptions(9));
+        Assert.True(compact.Length < fast.Length, $"level 0={fast.Length}; level 9={compact.Length}");
+        using var fastImage = ImageCodec.Decode(fast, "fast").Image;
+        using var compactImage = ImageCodec.Decode(compact, "compact").Image;
+        Assert.Equal(fastImage.GetPixel(17, 31), compactImage.GetPixel(17, 31));
+        Assert.Equal(fastImage.GetPixel(220, 140), compactImage.GetPixel(220, 140));
+    }
+
+    [Fact]
     public void JpegUsesTheChosenMatteAndIsOpaque()
     {
         using var transparent = DocumentRenderer.Flatten(new CanvasDocument(20, 12));

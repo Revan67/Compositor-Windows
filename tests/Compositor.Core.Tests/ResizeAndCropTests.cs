@@ -224,6 +224,10 @@ public sealed class ResizeAndCropTests
         session.SetCropRect(new Rect(0, 0, 100, 80));
         session.SetCropRatioChoice("16:9");
         Assert.Equal(56, session.CropRect!.Value.Height);
+        session.SetCropRatioChoice("3:4");
+        Assert.Equal(134, session.CropRect!.Value.Height);
+        session.SetCropRatioChoice("9:16");
+        Assert.Equal(178, session.CropRect!.Value.Height);
         session.CancelCrop();
         Assert.Null(session.CropRect);
     }

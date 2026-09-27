@@ -220,14 +220,16 @@ public sealed partial class EditorSession
 
     public string CropRatioChoice { get; private set; } = "Free";
 
-    public static readonly IReadOnlyList<string> CropRatioChoices = ["Free", "Original", "1:1", "4:3", "16:9"];
+    public static readonly IReadOnlyList<string> CropRatioChoices = ["Free", "Original", "1:1", "4:3", "3:4", "16:9", "9:16"];
 
     public double? CropRatio => CropRatioChoice switch
     {
         "Original" => Document is { } d ? (double)d.Width / d.Height : null,
         "1:1" => 1,
         "4:3" => 4.0 / 3,
+        "3:4" => 3.0 / 4,
         "16:9" => 16.0 / 9,
+        "9:16" => 9.0 / 16,
         _ => null,
     };
 
