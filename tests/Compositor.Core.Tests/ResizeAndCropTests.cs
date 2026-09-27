@@ -166,6 +166,20 @@ public sealed class ResizeAndCropTests
     }
 
     [Fact]
+    public void ResizeUsesSelectedRatioInsteadOfOriginalFrameRatio()
+    {
+        var rect = new Rect(0, 0, 160, 90);
+        var cornerIndex = LayerTransform.Handles.ToList().FindIndex(handle => handle.X == 1 && handle.Y == 1);
+        var start = new Point(rect.MaxX, rect.MaxY);
+        var drag = new CropDrag(start, rect, new CropDragMode.Resize(cornerIndex));
+
+        var next = drag.Updated(new Point(100, 100), ratio: 9.0 / 16);
+
+        Assert.True(Math.Abs((next.Width / next.Height) - (9.0 / 16)) < 0.01);
+        Assert.Equal(Point.Zero, next.Origin);
+    }
+
+    [Fact]
     public void CropEdgesSnapToNearbyEdges()
     {
         var snap = new CropSnap([0, 200, 50, 150], [0, 100, 20, 80], Tolerance: 6);

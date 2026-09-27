@@ -1,6 +1,6 @@
-# Compositor for Windows 0.9.0-beta.1 — Testing Guide
+# Compositor for Windows 0.9.0-beta.2 — Testing Guide
 
-This is an unsigned, portable beta candidate for Windows 10 and 11 x64. It is intended for broader workflow testing, not irreplaceable production work. Extract the entire ZIP before running `Compositor.App.exe`; Windows may show a SmartScreen warning because the build is not code-signed.
+This is an unsigned, portable beta for Windows 10 and 11 on x64 and ARM64. It is intended for broader workflow testing, not irreplaceable production work. Download the package matching the computer's architecture, extract the entire ZIP, and then run `Compositor.App.exe`; Windows may show a SmartScreen warning because the build is not code-signed.
 
 ## Before testing
 

@@ -68,4 +68,4 @@ Upstream changes through `01e8e52` were reviewed on 2026-09-23 as behavioral and
 
 ## Quality gate
 
-The public prerelease `v0.9.0-beta.1` passed 161 automated tests, the full 4K stress workload, packaged x64 native DLL loading/export checks, real-pixel crash recovery, and the hands-on beta checklist on 2026-09-22. Its portable ZIP includes `BETA-TESTING.md` and has a SHA-256 checksum. The unreleased Beta 2 checkpoint suite contains 176 tests after updater and zoom negative-path coverage; publishing still requires CI and final release approval.
+The public prerelease `v0.9.0-beta.1` passed 161 automated tests, the full 4K stress workload, packaged x64 native DLL loading/export checks, real-pixel crash recovery, and the hands-on beta checklist on 2026-09-22. Its portable ZIP includes `BETA-TESTING.md` and has a SHA-256 checksum. The unreleased Beta 2 checkpoint suite contains 177 tests after updater, zoom negative-path, and crop-preset resize coverage; publishing still requires CI and final release approval.

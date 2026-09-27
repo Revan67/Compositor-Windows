@@ -11,7 +11,7 @@ The first Windows beta was a reliability milestone for the implemented editor wo
 | Performance | Quick stress in CI; full 4K/800 px workload passes exact round-trip without runaway memory; broader hardware results reviewed | Local candidate gate passed; broader hardware results pending |
 | Diagnostics | Build identity, commands, edits, tools, paint, project I/O, recovery and exceptions are reconstructable | Implemented |
 | UI readiness | Essential actions reachable, consistent enabled states/shortcuts, no dead primary controls, usable error messages | Packaged candidate checklist passed; documented drag-reorder limitation remains |
-| Distribution | Clean self-contained x64 ZIP, native smoke test, tester guide and checksum; explicitly unsigned beta | `v0.9.0-beta.1` is a public GitHub prerelease with an x64 ZIP and SHA-256 asset |
+| Distribution | Clean self-contained x64 and ARM64 ZIPs, architecture checks, tester guide and checksums; explicitly unsigned beta | Beta 2 candidate packages pass local structure and architecture checks; publication and ARM64 hardware validation remain |
 | Quality | Zero known data-loss/crash defects; Release suite and beta checklist green | Beta 1 gate passed on 2026-09-22; Beta 2 checkpoint verification is tracked below |
 
 ## Beta 2 checkpoint work order
@@ -28,7 +28,7 @@ The first Windows beta was a reliability milestone for the implemented editor wo
 - Retouching tools, gradients, advanced shapes and editable text
 - Adjustments, filters and non-destructive layer effects
 - Remove Background
-- ARM64 public artifact, installer and code signing
+- Installer and code signing
 - Automatic in-place replacement of a running portable installation; the implemented updater only discovers, downloads, verifies and stages ZIP releases for manual replacement
 
 These remain roadmap commitments. Deferral keeps the beta small enough to make reliable and useful quickly.

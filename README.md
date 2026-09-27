@@ -7,7 +7,7 @@
 [![SkiaSharp 3.119](https://img.shields.io/badge/SkiaSharp-3.119-0D9488)](https://github.com/mono/SkiaSharp)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)](#building)
 [![Architectures](https://img.shields.io/badge/architectures-x64%20%7C%20arm64-0078D4)](#building)
-[![Tests](https://img.shields.io/badge/tests-176%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-177%20passing-brightgreen)](#testing)
 [![Status: public beta](https://img.shields.io/badge/status-public%20beta-yellow)](#status)
 [![Download beta](https://img.shields.io/badge/download-0.9.0--beta.1-blue?logo=github)](https://github.com/Revan67/Compositor-Windows/releases/tag/v0.9.0-beta.1)
 [![Last commit](https://img.shields.io/github/last-commit/Revan67/Compositor-Windows)](https://github.com/Revan67/Compositor-Windows/commits/main)
@@ -74,7 +74,7 @@ Run `./scripts/stress.ps1 -Profile quick` for the CI-sized 2K paint/save/reopen 
 
 ### Beta diagnostics
 
-Every run writes a timestamped diagnostic log under `%LOCALAPPDATA%\Compositor\Logs`; **Help → Open Diagnostic Logs** opens that folder. It records build/runtime information, commands, tool and edit workflows, project I/O, Avalonia trace output and unhandled exceptions. The newest 20 logs are retained. When reporting an alpha failure, reproduce it once and attach the newest `compositor-*.log` file.
+Every run writes a timestamped diagnostic log under `%LOCALAPPDATA%\Compositor\Logs`; **Help → Open Diagnostic Logs** opens that folder. It records build/runtime information, commands, tool and edit workflows, project I/O, Avalonia trace output and unhandled exceptions. The newest 20 logs are retained. When reporting a beta failure, reproduce it once and attach the newest `compositor-*.log` file.
 
 Compositor checks this repository's GitHub Releases after startup; **Help → Check for Updates…** runs the check manually. Beta builds accept newer prereleases as well as stable releases, while stable builds ignore prereleases. Portable updates are downloaded to `%LOCALAPPDATA%\Compositor\Updates` only after confirmation and must match the release's SHA-256 asset before they are offered for installation. The current portable build never overwrites its running folder automatically.
 

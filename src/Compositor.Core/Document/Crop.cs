@@ -71,7 +71,7 @@ public sealed record CropDrag(Point Start, Rect Original, CropDragMode Mode)
             {
                 var transform = new LayerTransform(Original.Origin, Original.Size);
                 var drag = new TransformDrag(transform, Start, new TransformDragMode.Resize(resize.Handle));
-                var next = drag.Updated(point, lockRatio: ratio is not null, shift: false, option: symmetric);
+                var next = drag.Updated(point, lockRatio: ratio is not null, shift: false, option: symmetric, aspectRatio: ratio);
                 return CropGeometry.Snapped(new Rect(next.Origin, next.Size));
             }
 

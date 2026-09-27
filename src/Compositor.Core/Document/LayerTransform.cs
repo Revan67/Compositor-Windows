@@ -210,7 +210,7 @@ public sealed record TransformDrag(LayerTransform Original, Point Start, Transfo
         return result;
     }
 
-    public LayerTransform Updated(Point point, bool lockRatio, bool shift, bool option = false)
+    public LayerTransform Updated(Point point, bool lockRatio, bool shift, bool option = false, double? aspectRatio = null)
     {
         var result = Original;
         switch (Mode)
@@ -271,25 +271,22 @@ public sealed record TransformDrag(LayerTransform Original, Point Start, Transfo
                 var height = sy == 0 ? Original.Size.Height : Math.Max(1, localY * sy);
                 if (lockRatio != shift)
                 {
-                    double factor;
+                    var ratio = aspectRatio ?? (Original.Size.Width / Original.Size.Height);
                     if (sx == 0)
                     {
-                        factor = height / Original.Size.Height;
+                        width = height * ratio;
                     }
                     else if (sy == 0)
                     {
-                        factor = width / Original.Size.Width;
+                        height = width / ratio;
                     }
                     else
                     {
-                        // Project onto the original diagonal for proportional scaling.
-                        var w = Original.Size.Width;
-                        var h = Original.Size.Height;
-                        factor = Math.Max(1 / Math.Min(w, h), ((localX * sx * w) + (localY * sy * h)) / ((w * w) + (h * h)));
+                        // Project onto the requested ratio's diagonal for proportional scaling.
+                        var factor = Math.Max(1 / Math.Min(ratio, 1), ((localX * sx * ratio) + (localY * sy)) / ((ratio * ratio) + 1));
+                        width = ratio * factor;
+                        height = factor;
                     }
-
-                    width = Original.Size.Width * factor;
-                    height = Original.Size.Height * factor;
                 }
 
                 var offsetX = (0.5 - anchorUnit.X) * width;
