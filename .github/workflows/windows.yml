@@ -36,7 +36,7 @@ jobs:
         shell: pwsh
         run: ./scripts/stress.ps1 -Profile quick -Output ./artifacts/stress-quick.json
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: matrix.arch == 'x64'
         with:
           name: Compositor-stress-metrics
@@ -52,7 +52,7 @@ jobs:
         shell: pwsh
         run: ./scripts/test-publish.ps1 -PublishDirectory ./dist/win-x64 -ExpectedArch x64
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Compositor-win-${{ matrix.arch }}
           path: |
