@@ -4,7 +4,7 @@
     <ProjectReference Include="..\..\src\Compositor.Core\Compositor.Core.csproj" />
     <!-- Core gets Skia's native library from Avalonia in the app; tests run without Avalonia. -->
     <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="$(SkiaSharpVersion)" />
-    <PackageReference Include="System.IO.Hashing" Version="10.0.0" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.14" />
   </ItemGroup>
 
 </Project>
