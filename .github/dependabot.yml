@@ -1,0 +1,40 @@
+
+version: 2
+
+updates:
+  # C#, Avalonia, SkiaSharp, and other NuGet packages
+  - package-ecosystem: "nuget"
+    directories:
+      - "/src/*"
+      - "/tests/*"
+      - "/tools/*"
+
+    schedule:
+      interval: "weekly"
+
+    open-pull-requests-limit: 10
+
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+
+    schedule:
+      interval: "weekly"
+
+    open-pull-requests-limit: 5
+
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
