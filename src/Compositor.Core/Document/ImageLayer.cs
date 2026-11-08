@@ -137,10 +137,13 @@ public sealed record DocumentSelection(SKPath Path)
             return null;
         }
 
-        using var builder = new SKPathBuilder();
-        builder.AddRect(clipped.ToSK());
+        var path = new SKPath();
 
-        return new DocumentSelection(builder.Detach())
+#pragma warning disable CS0618 // AddRect is obsolete in SkiaSharp 3.x; SKPathBuilder is unavailable.
+        path.AddRect(clipped.ToSK());
+#pragma warning restore CS0618
+
+        return new DocumentSelection(path)
         {
             Antialiased = antialiased
         };
@@ -181,10 +184,12 @@ public sealed record DocumentSelection(SKPath Path)
         using var moved = new SKPath(Path);
         moved.Transform(SKMatrix.CreateTranslation((float)dx, (float)dy));
 
-        using var builder = new SKPathBuilder();
-        builder.AddRect(documentBounds.ToSK());
+        using var bounds = new SKPath();
 
-        using var bounds = builder.Detach();
+#pragma warning disable CS0618 // AddRect is obsolete in SkiaSharp 3.x; SKPathBuilder is unavailable.
+        bounds.AddRect(documentBounds.ToSK());
+#pragma warning restore CS0618
+
         using var clipped = moved.Op(bounds, SKPathOp.Intersect);
 
         return clipped.IsEmpty
