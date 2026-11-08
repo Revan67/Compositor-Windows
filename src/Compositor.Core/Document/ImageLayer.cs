@@ -142,6 +142,7 @@ public sealed record DocumentSelection(SKPath Path)
         {
             Antialiased = antialiased
     };
+    }
 
     public static DocumentSelection? Combine(DocumentSelection? existing, DocumentSelection? shape, SelectionCombineMode mode)
     {
