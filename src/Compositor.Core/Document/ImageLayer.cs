@@ -176,9 +176,9 @@ public sealed record DocumentSelection(SKPath Path)
     {
         using var moved = new SKPath(Path);
         moved.Transform(SKMatrix.CreateTranslation((float)dx, (float)dy));
-        using var bounds = new SKPath();
-        bounds.AddRect(documentBounds.ToSK());
-        using var clipped = moved.Op(bounds, SKPathOp.Intersect);
+        using var builder = new SKPathBuilder();
+        builder.AddRect(documentBounds.ToSK());
+        using var bounds = builder.Detach();
         return clipped.IsEmpty ? null : new DocumentSelection(new SKPath(clipped)) { Antialiased = Antialiased };
     }
 
