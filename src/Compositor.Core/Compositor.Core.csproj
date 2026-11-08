@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="SkiaSharp" Version="$(SkiaSharpVersion)" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="4.155.0" />
     <PackageReference Include="System.IO.Hashing" Version="10.0.0" />
   </ItemGroup>
 

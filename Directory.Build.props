@@ -23,7 +23,7 @@
     -->
     <AvaloniaVersion>12.1.2</AvaloniaVersion>
     <!-- Read from `dotnet list package -include-transitive` on Compositor.App. -->
-    <SkiaSharpVersion>3.119.4</SkiaSharpVersion>
+    <SkiaSharpVersion>4.155.0</SkiaSharpVersion>
   </PropertyGroup>
 
 </Project>
