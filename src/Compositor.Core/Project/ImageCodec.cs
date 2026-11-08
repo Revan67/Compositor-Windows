@@ -121,7 +121,7 @@ public static class ImageCodec
         {
             canvas.Clear(new SKColor(Channel(options.Red), Channel(options.Green), Channel(options.Blue)));
             using var wrapped = image.AsImage();
-            canvas.DrawImage(wrapped, 0, 0);
+            canvas.DrawImage(wrapped, 0, 0, SKSamplingOptions.Default);
         }
 
         var quality = (int)Math.Round(Math.Clamp(options.Quality, 0, 1) * 100);
@@ -146,7 +146,7 @@ public static class ImageCodec
         using var canvas = new SKCanvas(upright);
         canvas.SetMatrix(OrientationMatrix(origin, w, h));
         using var wrapped = decoded.AsImage();
-        canvas.DrawImage(wrapped, 0, 0);
+        canvas.DrawImage(wrapped, 0, 0, SKSamplingOptions.Default);
         decoded.Dispose();
         return upright;
     }
