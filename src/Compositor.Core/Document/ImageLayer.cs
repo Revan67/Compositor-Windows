@@ -136,10 +136,12 @@ public sealed record DocumentSelection(SKPath Path)
             return null;
         }
 
-        var path = new SKPath();
-        path.AddRect(clipped.ToSK());
-        return new DocumentSelection(path) { Antialiased = antialiased };
-    }
+        using var builder = new SKPathBuilder();
+        builder.AddRect(clipped.ToSK());
+        return new DocumentSelection(builder.Detach())
+        {
+            Antialiased = antialiased
+    };
 
     public static DocumentSelection? Combine(DocumentSelection? existing, DocumentSelection? shape, SelectionCombineMode mode)
     {
