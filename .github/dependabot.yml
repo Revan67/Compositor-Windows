@@ -14,6 +14,21 @@ updates:
 
     open-pull-requests-limit: 10
 
+    # Keep the managed and native Skia packages aligned with Avalonia.Skia.
+    # Review version bumps together when updating Avalonia; this rule is for
+    # routine version updates, not security updates.
+    ignore:
+      - dependency-name: "SkiaSharp"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
+      - dependency-name: "SkiaSharp.NativeAssets.Win32"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
+
     groups:
       minor-and-patch:
         patterns:
