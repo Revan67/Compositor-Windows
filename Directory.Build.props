@@ -21,7 +21,7 @@
       or the canvas lease hands Core an SKCanvas from a different assembly. Verify with
       `dotnet list package -include-transitive` after bumping Avalonia.
     -->
-    <AvaloniaVersion>12.1.2</AvaloniaVersion>
+    <AvaloniaVersion>12.1.5</AvaloniaVersion>
     <!-- Read from `dotnet list package -include-transitive` on Compositor.App. -->
     <SkiaSharpVersion>3.119.4</SkiaSharpVersion>
   </PropertyGroup>
